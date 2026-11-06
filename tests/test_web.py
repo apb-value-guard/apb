@@ -408,3 +408,77 @@ def test_parser_is_not_called_for_a_case(client, monkeypatch):
     client.post("/api/decide", json={"case": "a"})
 
     parser.assert_not_called()
+
+
+# Screening
+
+
+def test_case_c_shows_a_stop_and_no_route(client):
+    receipt = client.post("/api/decide", json={"case": "c"}).json()["receipt"]
+
+    assert receipt["stop_reason"] == "Payment stopped: screening hold (simulated)"
+    assert receipt["selected_route"] is None
+    assert receipt["screening_result"]["source"] == "simulated"
+    assert {r["reason"] for r in receipt["excluded_routes"]} == {"screening_hold"}
+
+
+def test_execute_endpoint_never_pays_through_a_hold(client, http, monkeypatch):
+    monkeypatch.setenv("ALLOW_EXECUTE", "true")
+    decided = client.post("/api/decide", json={"case": "c"}).json()
+
+    data = client.post(
+        "/api/execute", json={"decision_id": decided["decision_id"]}
+    ).json()
+
+    assert data["execution"]["status"] == "stopped"
+    assert http.urls == []
+
+
+def test_benchmark_endpoint_has_nine_tests(client):
+    data = client.get("/api/benchmark").json()
+
+    names = {scenario["name"] for scenario in data["scenarios"]}
+    assert {"screening_hold", "kyc_gap"} <= names
+    assert len(names) == 9
+
+
+# Payee name check
+
+
+def test_close_match_shows_both_names_with_the_simulated_label(client):
+    receipt = client.post("/api/decide", json={"case": "d"}).json()["receipt"]
+
+    check = receipt["payee_check"]
+    assert check["result"] == "close_match"
+    assert check["source"] == "simulated"
+    assert check["expected_name"] != check["returned_name"]
+    assert receipt["selected_route"] == "paypal"
+    assert "Confirmation needed" in receipt["confirmation_reason"]
+
+
+def test_ui_needs_a_confirm_step_before_paying(client, http, monkeypatch):
+    monkeypatch.setenv("ALLOW_EXECUTE", "true")
+    decision_id = client.post("/api/decide", json={"case": "d"}).json()["decision_id"]
+
+    first = client.post("/api/execute", json={"decision_id": decision_id}).json()
+    assert first["execution"]["status"] == "needs_confirmation"
+    assert http.urls == []
+
+    second = client.post(
+        "/api/execute", json={"decision_id": decision_id, "confirm_payee": True}
+    ).json()
+    assert second["execution"]["payout_batch_id"] == BATCH
+    assert second["receipt"]["user_approved"] is True
+    assert len(http.urls) == 3
+
+
+def test_confirm_cannot_override_a_no_match(client, http, monkeypatch):
+    monkeypatch.setenv("ALLOW_EXECUTE", "true")
+    decision_id = client.post("/api/decide", json={"case": "e"}).json()["decision_id"]
+
+    data = client.post(
+        "/api/execute", json={"decision_id": decision_id, "confirm_payee": True}
+    ).json()
+
+    assert data["execution"]["reason"] == "payee_mismatch"
+    assert http.urls == []

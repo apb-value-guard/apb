@@ -750,3 +750,68 @@ def test_demo_case_works_with_cli_missing(monkeypatch, capsys):
 
     assert run_demo(monkeypatch, "--case", "a") == 0
     assert "Explanation (template)" in capsys.readouterr().out
+
+
+# Screening explanations
+
+
+def held_receipt():
+    mandate = load_mandate("c")
+    return decide(mandate, load_quotes()), mandate
+
+
+def test_template_for_a_hold_passes_grounding():
+    receipt, mandate = held_receipt()
+    assert grounding_check(template_explanation(receipt), receipt, mandate)
+
+
+def test_ai_text_must_say_a_simulated_hold_stopped_payment():
+    receipt, mandate = held_receipt()
+    silent = "No route was chosen. All values are synthetic."
+
+    updated = with_explanation(receipt, mandate, client=explain_client(silent))
+
+    assert updated.explanation_source == "template"
+
+
+def test_ai_text_about_the_hold_is_used():
+    receipt, mandate = held_receipt()
+    text = "Payment stopped for a simulated screening hold. All values are synthetic."
+
+    updated = with_explanation(receipt, mandate, client=explain_client(text))
+
+    assert updated.explanation == text
+    assert updated.explanation_source == "ai"
+
+
+# Payee explanations
+
+
+@pytest.mark.parametrize("case", ["d", "e"])
+def test_payee_templates_pass_grounding(case):
+    mandate = load_mandate(case)
+    receipt = decide(mandate, load_quotes())
+
+    assert grounding_check(template_explanation(receipt), receipt, mandate)
+
+
+def test_template_shows_both_names_for_a_close_match():
+    text = template_explanation(decide(load_mandate("d"), load_quotes()))
+
+    assert "Jane Sample Wanjiku" in text and "J Sample Wanjiku" in text
+
+
+@pytest.mark.parametrize(
+    "case, text",
+    [
+        ("d", "paypal was selected. All values are synthetic."),
+        ("e", "No route was chosen. All values are synthetic."),
+    ],
+)
+def test_ai_text_must_mention_the_payee_result(case, text):
+    mandate = load_mandate(case)
+    receipt = decide(mandate, load_quotes())
+
+    updated = with_explanation(receipt, mandate, client=explain_client(text))
+
+    assert updated.explanation_source == "template"

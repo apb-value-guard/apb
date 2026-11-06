@@ -4,8 +4,19 @@ from datetime import datetime
 from typing import Any
 
 from apb.decide import mandate_hash
-from apb.eligibility import exclusion_reason
-from apb.models import DecisionReceipt, PaymentMandate
+from apb.eligibility import (
+    exclusion_reason,
+    hold_is_active,
+    needs_payee_confirmation,
+    payee_is_mismatched,
+)
+from apb.models import (
+    PAYEE_CONFIRM_MESSAGE,
+    PAYEE_STOP_MESSAGE,
+    SCREENING_STOP_MESSAGE,
+    DecisionReceipt,
+    PaymentMandate,
+)
 from apb.paypal import (
     PayPalDuplicate,
     PayPalError,
@@ -30,6 +41,16 @@ def _stopped(status: str, reason: str) -> dict[str, Any]:
         "reason": reason,
         "provider": "paypal",
         "executed": False,
+    }
+
+
+def _hard_stop(reason: str, message: str) -> dict[str, Any]:
+    return {
+        "status": "stopped",
+        "reason": reason,
+        "provider": None,
+        "executed": False,
+        "note": message,
     }
 
 
@@ -83,14 +104,43 @@ def execute(
     mandate: PaymentMandate,
     now: datetime,
     approve: bool = False,
+    payee_confirmed: bool | None = None,
 ) -> DecisionReceipt:
     """Return the receipt with its execution fields filled.
 
     PayPal is called only when it is the selected route, the quote still passes
     the gate at `now`, and any required approval was given.
+
+    `approve` covers both the fee limit and a close payee match. Set
+    `payee_confirmed` to confirm the name alone, leaving the fee limit in place.
     """
     if mandate_hash(mandate) != receipt.mandate_hash:
         raise ValueError("the mandate does not match the receipt's mandate_hash")
+
+    # Checked first and on their own, so that no later step can pay through them.
+    if hold_is_active(mandate):
+        stop = _hard_stop("screening_hold", SCREENING_STOP_MESSAGE)
+        return receipt.model_copy(update={"execution": stop})
+    if payee_is_mismatched(mandate):
+        stop = _hard_stop("payee_mismatch", PAYEE_STOP_MESSAGE)
+        return receipt.model_copy(update={"execution": stop})
+
+    confirmed = approve if payee_confirmed is None else payee_confirmed
+    if needs_payee_confirmation(mandate) and not confirmed:
+        check = mandate.payee_check
+        return receipt.model_copy(
+            update={
+                "execution": {
+                    "status": "needs_confirmation",
+                    "reason": "payee_close_match",
+                    "provider": receipt.selected_route,
+                    "expected_name": check.expected_name,
+                    "returned_name": check.returned_name,
+                    "executed": False,
+                    "note": PAYEE_CONFIRM_MESSAGE,
+                }
+            }
+        )
 
     if receipt.selected_route != "paypal":
         status = "handoff_logged" if receipt.selected_route else "no_route"
@@ -107,7 +157,7 @@ def execute(
     quote = selected_quote(receipt)
     update: dict[str, Any] = {
         "quote_rechecked_at_commit": True,
-        "user_approved": approve,
+        "user_approved": approve or confirmed,
     }
 
     reason = exclusion_reason(mandate, quote, now)

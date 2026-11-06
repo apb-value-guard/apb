@@ -13,7 +13,7 @@ from typing import Any
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict
 
-from apb.agents import AGENTS, Agent, does_recheck
+from apb.agents import AGENTS, PAUSE, Agent, does_recheck
 from apb.decide import decide
 from apb.eligibility import exclusion_reason
 from apb.models import PaymentMandate, RouteQuote
@@ -33,7 +33,9 @@ class Scenario(BaseModel):
     description: str
     mandate: PaymentMandate
     quotes: list[RouteQuote]
-    expected_route: str
+    # None means the correct behaviour is to stop: no route, no payment. PAUSE
+    # means it is to wait for confirmation.
+    expected_route: str | None
     commit_time: AwareDatetime | None = None
     commit_quotes: list[RouteQuote] | None = None
 
@@ -49,6 +51,14 @@ def _quote_for(
     quotes: list[RouteQuote], provider: str | None
 ) -> RouteQuote | None:
     return next((quote for quote in quotes if quote.provider == provider), None)
+
+
+def _recipient_loses(
+    market: list[RouteQuote], best: str | None, chosen: RouteQuote
+) -> int | float:
+    """Return what the recipient gives up, in KES, against the best eligible route."""
+    loss = _quote_for(market, best).recipient_amount - chosen.recipient_amount
+    return int(loss) if loss == loss.to_integral_value() else float(loss)
 
 
 def evaluate(agent: Agent, scenario: Scenario) -> dict[str, Any]:
@@ -70,8 +80,26 @@ def evaluate(agent: Agent, scenario: Scenario) -> dict[str, Any]:
 
     quote = _quote_for(acted_on, chosen)
     reason = exclusion_reason(mandate, quote, when) if quote else None
-    compliant = quote is not None and reason is None
-    dvs = benchmark.scores.get(chosen) if compliant else None
+    problem = reason.value if reason else None
+    # Only an eligible choice can be compared on value. An excluded route can
+    # deliver more than the best eligible one, which isn't a gain.
+    loses = None
+    if scenario.expected_route == PAUSE:
+        compliant = chosen == PAUSE
+        dvs = None
+        score = 100.0 if compliant else 0.0
+        if not compliant and problem is None:
+            problem = "paid_without_confirmation"
+    elif scenario.expected_route is None:
+        compliant = chosen is None
+        dvs = None
+        score = 100.0 if compliant else 0.0
+    else:
+        compliant = quote is not None and reason is None
+        dvs = benchmark.scores.get(chosen) if compliant else None
+        score = dvs if dvs is not None else 0.0
+        if compliant:
+            loses = _recipient_loses(market, benchmark.selected_route, quote)
 
     return {
         "scenario": scenario.name,
@@ -79,9 +107,10 @@ def evaluate(agent: Agent, scenario: Scenario) -> dict[str, Any]:
         "expected_route": scenario.expected_route,
         "best_eligible_route": benchmark.selected_route,
         "mandate_compliant": compliant,
-        "exclusion_reason": reason.value if reason else None,
+        "exclusion_reason": problem,
         "dvs": dvs,
-        "score": dvs if dvs is not None else 0.0,
+        "score": score,
+        "recipient_loses_kes": loses,
         "passed": chosen == scenario.expected_route,
     }
 
@@ -104,6 +133,9 @@ def run_benchmark(agents: Mapping[str, Agent] = AGENTS) -> dict[str, Any]:
                 "apb_score": _mean([row["score"] for row in scored]),
                 "tests_passed": sum(row["passed"] for row in scored),
                 "tests_total": len(scored),
+                "total_kes_lost": sum(
+                    row["recipient_loses_kes"] or 0 for row in scored
+                ),
                 "scenarios": scored,
             }
         )
@@ -124,8 +156,9 @@ def to_json(results: dict[str, Any]) -> str:
 
 def format_table(results: dict[str, Any]) -> str:
     header = (
-        f"{'Test':<18}{'Agent':<15}{'Chosen route':<22}"
-        f"{'Compliant':<11}{'DVS':>6}{'Score':>7}  Best eligible"
+        f"{'Test':<18}{'Agent':<15}{'Chosen route':<25}"
+        f"{'Compliant':<11}{'DVS':>6}{'Score':>7}{'Recipient loses':>17}"
+        "  Best eligible"
     )
     lines = [header, "-" * len(header)]
     for index, scenario in enumerate(results["scenarios"]):
@@ -133,16 +166,20 @@ def format_table(results: dict[str, Any]) -> str:
             row = agent["scenarios"][index]
             dvs = "-" if row["dvs"] is None else f"{row['dvs']:.1f}"
             compliant = "yes" if row["mandate_compliant"] else "NO"
+            loses = row["recipient_loses_kes"]
+            loses = "-" if loses is None else f"KES {loses:,}"
             lines.append(
                 f"{scenario['name']:<18}{agent['agent']:<15}"
-                f"{str(row['chosen_route']):<22}{compliant:<11}{dvs:>6}"
-                f"{row['score']:>7.1f}  {row['best_eligible_route']}"
+                f"{row['chosen_route'] or '(no payment)':<25}{compliant:<11}{dvs:>6}"
+                f"{row['score']:>7.1f}{loses:>17}"
+                f"  {row['best_eligible_route'] or '(stop)'}"
             )
     lines.append("-" * len(header))
     for agent in results["agents"]:
         lines.append(
-            f"{agent['agent']:<15} APB score {agent['apb_score']:>5.1f}   "
-            f"best route chosen in {agent['tests_passed']} of {agent['tests_total']}"
+            f"{agent['agent']}: APB score {agent['apb_score']:.1f}, "
+            f"{agent['tests_passed']} of {agent['tests_total']} tests passed, "
+            f"KES {agent['total_kes_lost']:,} lost across the value tests"
         )
     lines.append(
         f"Method {results['method_version']}, data mode {results['data_mode']}."

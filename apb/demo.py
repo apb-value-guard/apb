@@ -50,7 +50,8 @@ def print_report(mandate: PaymentMandate, receipt: DecisionReceipt) -> None:
     print("\nRoute cards")
     for quote in receipt.candidate_set:
         sponsored = ", sponsored" if quote.sponsored else ""
-        print(f"  {quote.provider} [{quote.data_mode}{sponsored}]")
+        kyc = ", KYC required" if quote.requires_kyc else ""
+        print(f"  {quote.provider} [{quote.data_mode}{sponsored}{kyc}]")
         print(f"    fee:       {money(quote.fee)} {mandate.send_currency}")
         print(f"    fx rate:   {money(quote.fx_rate)}")
         print(f"    recipient: {money(quote.recipient_amount)}")
@@ -61,6 +62,17 @@ def print_report(mandate: PaymentMandate, receipt: DecisionReceipt) -> None:
         print(f"  {route.provider}: {route.reason.value}")
     if not receipt.excluded_routes:
         print("  none")
+
+    if receipt.stop_reason:
+        print(f"\n{receipt.stop_reason}")
+
+    if receipt.payee_check:
+        check = receipt.payee_check
+        print(f"\nPayee check: {check.result} [{check.source}]")
+        print(f"  expected: {check.expected_name}")
+        print(f"  returned: {check.returned_name}")
+    if receipt.confirmation_reason:
+        print(f"  {receipt.confirmation_reason}")
 
     print("\nDVS per eligible route")
     for provider, score in receipt.scores.items():
@@ -143,13 +155,15 @@ def main() -> int:
     sys.stdout.reconfigure(errors="replace")
     parser = argparse.ArgumentParser(description="Run APB Value Guard.")
     source = parser.add_mutually_exclusive_group(required=True)
-    source.add_argument("--case", choices=["a", "b"])
+    source.add_argument("--case", choices=["a", "b", "c", "d", "e"])
     source.add_argument("--text", help="a payment request in plain English")
     parser.add_argument(
         "--execute", action="store_true", help="pay via the PayPal sandbox"
     )
     parser.add_argument(
-        "--approve", action="store_true", help="approve a fee above the mandate limit"
+        "--approve",
+        action="store_true",
+        help="approve a fee above the mandate limit or a close payee name match",
     )
     parser.add_argument(
         "--fresh",

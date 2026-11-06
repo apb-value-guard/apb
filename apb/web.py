@@ -51,7 +51,7 @@ _decisions: OrderedDict[str, tuple[PaymentMandate, DecisionReceipt]] = OrderedDi
 class DecideRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    case: Literal["a", "b"] | None = None
+    case: Literal["a", "b", "c", "d", "e"] | None = None
     text: str | None = Field(default=None, max_length=1000)
 
 
@@ -59,6 +59,7 @@ class ExecuteRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     decision_id: str = Field(max_length=64)
+    confirm_payee: bool = False
 
 
 def execute_allowed() -> bool:
@@ -167,7 +168,13 @@ def run_execute(request: ExecuteRequest) -> dict[str, Any]:
 
     mandate, receipt = stored
     if receipt.execution is None or receipt.execution.get("executed") is not True:
-        receipt = execute(receipt, mandate, datetime.now(UTC))
+        # Confirming the name approves nothing else, such as a fee over the limit.
+        receipt = execute(
+            receipt,
+            mandate,
+            datetime.now(UTC),
+            payee_confirmed=request.confirm_payee,
+        )
         _decisions[request.decision_id] = (mandate, receipt)
     return {
         "execution": receipt.execution,

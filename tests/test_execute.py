@@ -9,10 +9,11 @@ from decimal import Decimal
 import pytest
 
 from apb import demo, paypal
-from apb.decide import decide
+from apb.decide import decide, mandate_hash
 from apb.demo import load_mandate, load_quotes
 from apb.execute import SANDBOX_NOTE, execute
-from apb.explain import with_explanation
+from apb.explain import template_explanation, with_explanation
+from apb.models import PayeeCheck, PaymentMandate, ReasonCode, ScreeningResult
 from apb.paypal import PayPalError, require_sandbox, sender_batch_id
 
 CLIENT_ID = "test-client-id"
@@ -768,3 +769,378 @@ def test_cli_text_execute_pays(http, monkeypatch, capsys):
     assert run_demo(monkeypatch, "--text", "Send it", "--execute") == 0
 
     assert len(opener.requests) == 3
+
+
+# Compliance
+
+
+HOLD = {"status": "hold", "list": "sanctions", "source": "simulated"}
+CLEAR = {"status": "clear", "source": "simulated"}
+STOP = "Payment stopped: screening hold (simulated)"
+
+
+def held_mandate():
+    return PaymentMandate.model_validate(
+        {**load_mandate("a").model_dump(), "screening_result": HOLD}
+    )
+
+
+def test_hold_excludes_every_route():
+    receipt = decide(held_mandate(), load_quotes())
+
+    assert receipt.selected_route is None
+    assert receipt.eligible_routes == []
+    assert receipt.scores == {}
+    assert {route.reason for route in receipt.excluded_routes} == {
+        ReasonCode.SCREENING_HOLD
+    }
+    assert len(receipt.excluded_routes) == len(load_quotes())
+
+
+def test_hold_wins_over_every_other_reason():
+    late = [q.model_copy(update={"delivery_minutes": 99999}) for q in load_quotes()]
+    receipt = decide(held_mandate(), late)
+
+    assert {route.reason for route in receipt.excluded_routes} == {
+        ReasonCode.SCREENING_HOLD
+    }
+
+
+def test_receipt_says_a_simulated_hold_stopped_payment():
+    receipt = decide(held_mandate(), load_quotes())
+
+    assert receipt.stop_reason == STOP
+    assert receipt.screening_result.source == "simulated"
+    assert template_explanation(receipt).startswith(STOP)
+
+
+def test_clear_result_changes_nothing_but_is_disclosed():
+    mandate = PaymentMandate.model_validate(
+        {**load_mandate("a").model_dump(), "screening_result": CLEAR}
+    )
+    receipt = decide(mandate, load_quotes())
+
+    assert receipt.selected_route == "paypal"
+    assert receipt.stop_reason is None
+    assert receipt.screening_result.status == "clear"
+
+
+@pytest.mark.parametrize("source", ["real", "vendor", None])
+def test_a_screening_result_must_be_labelled_simulated(source):
+    with pytest.raises(ValueError):
+        ScreeningResult.model_validate({"status": "hold", "source": source})
+
+
+def test_hold_never_calls_paypal(http):
+    opener = http()
+    mandate = held_mandate()
+
+    result = execute(decide(mandate, load_quotes()), mandate, NOW, approve=True)
+
+    assert opener.requests == []
+    assert result.execution["status"] == "stopped"
+    assert result.execution["reason"] == "screening_hold"
+    assert result.execution["executed"] is False
+    assert result.execution["note"] == STOP
+
+
+def test_hold_stops_payment_even_if_a_receipt_selected_paypal(http):
+    opener = http()
+    mandate = held_mandate()
+    forged = decide(mandate, load_quotes()).model_copy(
+        update={"selected_route": "paypal"}
+    )
+
+    result = execute(forged, mandate, NOW, approve=True)
+
+    assert opener.requests == []
+    assert result.execution["executed"] is False
+
+
+def test_cli_case_c_execute_never_calls_paypal(http, monkeypatch, capsys):
+    opener = http()
+
+    assert run_demo(monkeypatch, "--case", "c", "--execute", "--approve") == 0
+
+    output = capsys.readouterr().out
+    assert opener.requests == []
+    assert STOP in output
+    assert '"selected_route": null' in output
+
+
+def test_cli_case_c_execute_fresh_never_calls_paypal(http, monkeypatch):
+    opener = http()
+
+    run_demo(monkeypatch, "--case", "c", "--execute", "--fresh")
+
+    assert opener.requests == []
+
+
+def kyc_quotes():
+    return [
+        quote.model_copy(update={"requires_kyc": quote.provider != "zero_fee_provider"})
+        for quote in load_quotes()
+    ]
+
+
+def test_kyc_excludes_only_the_unverified_route():
+    mandate = load_mandate("b").model_copy(
+        update={"sender_verified_for": ["paypal"]}
+    )
+
+    receipt = decide(mandate, kyc_quotes())
+
+    assert [(r.provider, r.reason) for r in receipt.excluded_routes] == [
+        ("alternative_provider", ReasonCode.KYC_NOT_VERIFIED)
+    ]
+    assert receipt.selected_route == "paypal"
+    assert set(receipt.eligible_routes) == {"paypal", "zero_fee_provider"}
+
+
+@pytest.mark.parametrize("verified", [None, []])
+def test_no_verification_excludes_every_kyc_route(verified):
+    mandate = load_mandate("b").model_copy(
+        update={"sender_verified_for": verified}
+    )
+
+    receipt = decide(mandate, kyc_quotes())
+
+    assert receipt.selected_route == "zero_fee_provider"
+    assert len(receipt.excluded_routes) == 2
+
+
+def test_routes_without_requires_kyc_are_unaffected():
+    mandate = load_mandate("b").model_copy(update={"sender_verified_for": []})
+    assert decide(mandate, load_quotes()).excluded_routes == []
+
+
+def test_unverified_paypal_route_is_not_paid(http):
+    opener = http()
+    mandate = load_mandate("a").model_copy(update={"sender_verified_for": []})
+    quotes = [q.model_copy(update={"requires_kyc": True}) for q in load_quotes()]
+
+    result = execute(decide(mandate, quotes), mandate, NOW)
+
+    assert opener.requests == []
+    assert result.selected_route is None
+
+
+# Stability of existing mandates
+
+
+@pytest.mark.parametrize(
+    "case, expected",
+    [
+        ("a", "256d8e65d147e3405be3de24b49f178176ac1e40cbf2ce36c01c58066f8b4333"),
+        ("b", "ab69298fece0d130b5ac9c36cd546ffc42805580f760177b638e5929b97779c5"),
+    ],
+)
+def test_existing_mandate_hashes_are_unchanged(case, expected):
+    assert mandate_hash(load_mandate(case)) == expected
+
+
+def test_case_a_keeps_the_batch_id_of_the_payout_already_made():
+    receipt, _ = decided("a")
+    assert sender_batch_id(receipt) == (
+        "b95c349b447538de01505d0a36a1cfabb860b9889742f830fa5817c225f65321"
+    )
+
+
+def test_screening_and_verification_change_the_hash():
+    base = mandate_hash(load_mandate("a"))
+
+    assert mandate_hash(held_mandate()) != base
+    verified = load_mandate("a").model_copy(update={"sender_verified_for": []})
+    assert mandate_hash(verified) != base
+
+
+# Payee name check
+
+
+EXPECTED_NAME = "Jane Sample Wanjiku"
+MATCH_STOP = "Payment stopped: payee name mismatch (simulated)"
+
+
+def with_payee(case, result, returned="J Sample Wanjiku"):
+    check = PayeeCheck(
+        result=result,
+        expected_name=EXPECTED_NAME,
+        returned_name=returned,
+        source="simulated",
+    )
+    return load_mandate(case).model_copy(update={"payee_check": check})
+
+
+def test_payee_match_proceeds_as_normal(http):
+    successful(http)
+    mandate = with_payee("a", "match", EXPECTED_NAME)
+
+    result = execute(decide(mandate, load_quotes()), mandate, NOW)
+
+    assert result.selected_route == "paypal"
+    assert result.excluded_routes == decide(load_mandate("a"), load_quotes()).excluded_routes
+    assert result.confirmation_reason is None
+    assert result.execution["executed"] is True
+
+
+def test_close_match_selects_a_route_but_does_not_pay(http):
+    opener = http()
+    mandate = with_payee("a", "close_match")
+    receipt = decide(mandate, load_quotes())
+
+    result = execute(receipt, mandate, NOW)
+
+    assert receipt.selected_route == "paypal"
+    assert opener.requests == []
+    assert result.execution["status"] == "needs_confirmation"
+    assert result.execution["expected_name"] == EXPECTED_NAME
+    assert result.execution["returned_name"] == "J Sample Wanjiku"
+    assert result.execution["executed"] is False
+    assert result.user_approved is False
+
+
+def test_close_match_with_approve_pays(http):
+    opener = successful(http)
+    mandate = with_payee("a", "close_match")
+
+    result = execute(decide(mandate, load_quotes()), mandate, NOW, approve=True)
+
+    assert len(opener.requests) == 3
+    assert result.execution["executed"] is True
+    assert result.user_approved is True
+
+
+def test_confirmed_close_match_still_gets_the_quote_recheck(http):
+    opener = http()
+    mandate = with_payee("a", "close_match")
+
+    result = execute(decide(mandate, load_quotes()), mandate, EXPIRED, approve=True)
+
+    assert opener.requests == []
+    assert result.execution["reason"] == "quote_expired"
+
+
+def test_confirming_the_name_does_not_approve_a_high_fee(http):
+    opener = http()
+    mandate = with_payee("a", "close_match").model_copy(
+        update={"approval_required_above_fee": Decimal("1.00")}
+    )
+
+    result = execute(
+        decide(mandate, load_quotes()), mandate, NOW, payee_confirmed=True
+    )
+
+    assert opener.requests == []
+    assert result.execution["reason"] == "approval_required"
+
+
+def test_close_match_pauses_a_handoff_too(http):
+    opener = http()
+    mandate = with_payee("b", "close_match")
+
+    result = execute(decide(mandate, load_quotes()), mandate, NOW)
+
+    assert opener.requests == []
+    assert result.execution["status"] == "needs_confirmation"
+    assert result.execution["provider"] == "alternative_provider"
+
+
+def test_no_match_excludes_every_route():
+    receipt = decide(with_payee("a", "no_match", "Peter Example Mwangi"), load_quotes())
+
+    assert receipt.selected_route is None
+    assert receipt.scores == {}
+    assert {route.reason for route in receipt.excluded_routes} == {
+        ReasonCode.PAYEE_MISMATCH
+    }
+    assert len(receipt.excluded_routes) == len(load_quotes())
+    assert receipt.stop_reason == MATCH_STOP
+
+
+def test_no_match_never_pays_even_with_approve(http):
+    opener = http()
+    mandate = with_payee("a", "no_match", "Peter Example Mwangi")
+
+    result = execute(
+        decide(mandate, load_quotes()),
+        mandate,
+        NOW,
+        approve=True,
+        payee_confirmed=True,
+    )
+
+    assert opener.requests == []
+    assert result.execution["status"] == "stopped"
+    assert result.execution["reason"] == "payee_mismatch"
+    assert result.execution["executed"] is False
+
+
+def test_no_match_stops_payment_even_if_a_receipt_selected_paypal(http):
+    opener = http()
+    mandate = with_payee("a", "no_match", "Peter Example Mwangi")
+    forged = decide(mandate, load_quotes()).model_copy(
+        update={"selected_route": "paypal"}
+    )
+
+    result = execute(forged, mandate, NOW, approve=True)
+
+    assert opener.requests == []
+    assert result.execution["executed"] is False
+
+
+def test_hold_is_reported_first_when_both_stops_apply():
+    mandate = with_payee("c", "no_match", "Peter Example Mwangi")
+    receipt = decide(mandate, load_quotes())
+
+    assert receipt.stop_reason == STOP
+    assert {route.reason for route in receipt.excluded_routes} == {
+        ReasonCode.SCREENING_HOLD
+    }
+
+
+@pytest.mark.parametrize("source", ["real", "vendor", None])
+def test_a_payee_check_must_be_labelled_simulated(source):
+    with pytest.raises(ValueError):
+        PayeeCheck.model_validate(
+            {
+                "result": "match",
+                "expected_name": "A",
+                "returned_name": "A",
+                "source": source,
+            }
+        )
+
+
+def test_cli_close_match_without_approve_makes_no_call(http, monkeypatch, capsys):
+    opener = http()
+
+    assert run_demo(monkeypatch, "--case", "d", "--execute") == 0
+
+    output = capsys.readouterr().out
+    assert opener.requests == []
+    assert '"status": "needs_confirmation"' in output
+    assert EXPECTED_NAME in output and "J Sample Wanjiku" in output
+
+
+def test_cli_close_match_with_approve_pays(http, monkeypatch):
+    opener = successful(http)
+
+    assert run_demo(monkeypatch, "--case", "d", "--execute", "--approve") == 0
+
+    assert len(opener.requests) == 3
+
+
+@pytest.mark.parametrize(
+    "flags", [("--execute",), ("--execute", "--approve", "--fresh")]
+)
+def test_cli_no_match_never_calls_paypal(http, monkeypatch, capsys, flags):
+    opener = http()
+
+    assert run_demo(monkeypatch, "--case", "e", *flags) == 0
+
+    assert opener.requests == []
+    assert MATCH_STOP in capsys.readouterr().out
+
+
+def test_payee_check_changes_the_hash():
+    assert mandate_hash(with_payee("a", "match")) != mandate_hash(load_mandate("a"))

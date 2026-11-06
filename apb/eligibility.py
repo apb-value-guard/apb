@@ -48,13 +48,48 @@ def disclosure_missing(
     )
 
 
+def hold_is_active(mandate: PaymentMandate) -> bool:
+    result = mandate.screening_result
+    return result is not None and result.status == "hold"
+
+
+def screening_hold(mandate: PaymentMandate, quote: RouteQuote, now: datetime) -> bool:
+    """A hold stops the payment, so it applies to every route."""
+    return hold_is_active(mandate)
+
+
+def payee_is_mismatched(mandate: PaymentMandate) -> bool:
+    check = mandate.payee_check
+    return check is not None and check.result == "no_match"
+
+
+def needs_payee_confirmation(mandate: PaymentMandate) -> bool:
+    check = mandate.payee_check
+    return check is not None and check.result == "close_match"
+
+
+def payee_mismatch(mandate: PaymentMandate, quote: RouteQuote, now: datetime) -> bool:
+    """A wrong payee is wrong on every route."""
+    return payee_is_mismatched(mandate)
+
+
+def kyc_not_verified(
+    mandate: PaymentMandate, quote: RouteQuote, now: datetime
+) -> bool:
+    verified = mandate.sender_verified_for or []
+    return quote.requires_kyc and quote.provider not in verified
+
+
 # When a route fails several checks, the first failure here is its reason.
 _CHECKS = (
+    (ReasonCode.SCREENING_HOLD, screening_hold),
+    (ReasonCode.PAYEE_MISMATCH, payee_mismatch),
     (ReasonCode.DEADLINE_VIOLATION, violates_deadline),
     (ReasonCode.PAYOUT_UNSUPPORTED, payout_unsupported),
     (ReasonCode.AMOUNT_OUT_OF_LIMITS, amount_out_of_limits),
     (ReasonCode.QUOTE_EXPIRED, quote_expired),
     (ReasonCode.DISCLOSURE_MISSING, disclosure_missing),
+    (ReasonCode.KYC_NOT_VERIFIED, kyc_not_verified),
 )
 
 

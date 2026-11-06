@@ -130,6 +130,8 @@
   .no { color: var(--bad); font-weight: 600; }
   .yes { color: var(--good); }
   .scores { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .summary { margin-top: 14px; }
+  .summary p { margin: 4px 0; }
   .score-number { font-size: 2rem; font-weight: 650; line-height: 1.2; font-variant-numeric: tabular-nums; }
   .score-label { color: var(--muted); font-size: .92rem; }
   a { color: var(--accent); }
@@ -165,6 +167,9 @@
           <button class="action primary" id="run-text">Run</button>
           <button class="action" id="run-a">Case A: 2 hour deadline</button>
           <button class="action" id="run-b">Case B: 2 day deadline</button>
+          <button class="action" id="run-c">Case C: screening hold</button>
+          <button class="action" id="run-d">Case D: payee close match</button>
+          <button class="action" id="run-e">Case E: payee no match</button>
         </div>
       </div>
       <p class="status" id="status" role="status"></p>
@@ -234,7 +239,7 @@ const configReady = api("/api/config")
   .catch(() => {});
 
 function setBusy(busy) {
-  for (const id of ["run-text", "run-a", "run-b"]) byId(id).disabled = busy;
+  for (const id of ["run-text", "run-a", "run-b", "run-c", "run-d", "run-e"]) byId(id).disabled = busy;
 }
 
 async function runDecision(body) {
@@ -271,7 +276,23 @@ function renderOutcome(data) {
   byId("result").replaceChildren(box);
 }
 
-function requestPanel(request) {
+function screeningValue(screening) {
+  if (!screening) return "not supplied";
+  const status = screening.list ? `${screening.status} (${screening.list})` : screening.status;
+  return [status, " ", el("span", { class: "badge" }, screening.source)];
+}
+
+function payeeRows(check) {
+  if (!check) return [el("dt", {}, "Payee check"), el("dd", {}, "not supplied")];
+  return [
+    el("dt", {}, "Payee check"),
+    el("dd", {}, check.result, " ", el("span", { class: "badge" }, check.source)),
+    el("dt", {}, "Expected name"), el("dd", {}, check.expected_name),
+    el("dt", {}, "Returned name"), el("dd", {}, check.returned_name),
+  ];
+}
+
+function requestPanel(request, screening, payee) {
   const fromAi = request.source === "ai";
   return el("div", { class: "panel request-panel" },
     el("div", { class: "request-head" },
@@ -282,7 +303,9 @@ function requestPanel(request) {
       el("dt", {}, "Currency"), el("dd", {}, request.currency),
       el("dt", {}, "Payout method"), el("dd", {}, request.payout_method),
       el("dt", {}, "Wallet"), el("dd", {}, request.wallet),
-      el("dt", {}, "Deadline"), el("dd", {}, `${whole(request.deadline_minutes)} minutes`)));
+      el("dt", {}, "Deadline"), el("dd", {}, `${whole(request.deadline_minutes)} minutes`),
+      el("dt", {}, "Screening"), el("dd", {}, screeningValue(screening)),
+      payeeRows(payee)));
 }
 
 function copyButton(getText) {
@@ -320,6 +343,7 @@ function routeCard(quote, receipt, mandate, receiveCurrency, reasons) {
   const badges = [el("span", { class: "badge" }, quote.data_mode)];
   if (selected) badges.unshift(el("span", { class: "badge strong" }, "Selected"));
   if (quote.sponsored) badges.push(el("span", { class: "badge" }, "Sponsored"));
+  if (quote.requires_kyc) badges.push(el("span", { class: "badge" }, "KYC required"));
   return el("article", { class: selected ? "card selected" : "card" },
     el("div", { class: "card-head" },
       el("span", { class: "card-name" }, quote.provider),
@@ -343,11 +367,14 @@ function renderDecision(data) {
   const { receipt, mandate, request, receive_currency: receiveCurrency } = data;
   const reasons = new Map(receipt.excluded_routes.map((route) => [route.provider, route.reason]));
   const sections = [
-    requestPanel(request),
+    requestPanel(request, receipt.screening_result, receipt.payee_check),
     el("p", { class: "selected-line" },
-      receipt.selected_route
-        ? ["Selected route: ", el("strong", {}, receipt.selected_route)]
-        : "No route passed eligibility."),
+      receipt.stop_reason
+        ? el("strong", {}, receipt.stop_reason)
+        : receipt.selected_route
+          ? ["Selected route: ", el("strong", {}, receipt.selected_route)]
+          : "No route passed eligibility."),
+    receipt.confirmation_reason ? el("p", {}, el("strong", {}, receipt.confirmation_reason)) : null,
     el("h2", {}, "Routes"),
     el("div", { class: "cards" }, receipt.candidate_set.map((quote) => routeCard(quote, receipt, mandate, receiveCurrency, reasons))),
     el("h2", {}, "Exclusions"),
@@ -359,7 +386,9 @@ function renderDecision(data) {
     el("div", { class: "panel" },
       Object.entries(receipt.scores).map(([provider, score]) =>
         dvsRow(provider, score, provider === receipt.selected_route)),
-      el("p", { class: "axis-note" }, "Bars run from 0 to 100. Excluded routes are not scored.")),
+      el("p", { class: "axis-note" }, Object.keys(receipt.scores).length
+        ? "Bars run from 0 to 100. Excluded routes are not scored."
+        : "No routes were scored.")),
     el("h2", {}, "Explanation ",
       el("span", { class: "badge" }, receipt.explanation_source === "ai" ? "AI, grounding checked" : "Template")),
     el("div", { class: "panel" }, receipt.explanation),
@@ -368,27 +397,36 @@ function renderDecision(data) {
     sections.push(el("p", { class: "axis-note" },
       `Sponsored: ${receipt.sponsored_routes.join(", ")}. Sponsorship does not affect scoring.`));
   }
-  if (allowExecute) sections.push(executePanel());
+  if (allowExecute && !receipt.stop_reason) sections.push(executePanel());
   sections.push(receiptSection(receipt));
-  byId("result").replaceChildren(...sections);
+  byId("result").replaceChildren(...sections.filter(Boolean));
 }
 
 function executePanel() {
   const button = el("button", { class: "action primary" }, "Execute in sandbox");
   const output = el("div", { role: "status" });
-  button.addEventListener("click", async () => {
+  async function send(confirmPayee) {
     button.disabled = true;
     output.textContent = "Sending to PayPal sandbox...";
     try {
-      const { execution, receipt } = await api("/api/execute", { decision_id: decisionId });
+      const { execution, receipt } = await api("/api/execute", {
+        decision_id: decisionId,
+        confirm_payee: confirmPayee,
+      });
       output.replaceChildren(executionResult(execution));
+      if (execution.status === "needs_confirmation") {
+        const confirm = el("button", { class: "action primary", id: "confirm-payee" }, "Confirm payee and execute");
+        confirm.addEventListener("click", () => send(true));
+        output.append(el("div", { class: "actions" }, confirm));
+      }
       const current = byId("receipt-section");
       current.replaceWith(receiptSection(receipt, current.open));
     } catch (error) {
       output.textContent = error.message;
     }
     button.disabled = false;
-  });
+  }
+  button.addEventListener("click", () => send(false));
   return el("div", {},
     el("h2", {}, "Execution"),
     el("div", { class: "panel" },
@@ -399,6 +437,8 @@ function executePanel() {
 function executionResult(execution) {
   const rows = [["Status", execution.status]];
   if (execution.reason) rows.push(["Reason", execution.reason]);
+  if (execution.expected_name) rows.push(["Expected name", execution.expected_name]);
+  if (execution.returned_name) rows.push(["Returned name", execution.returned_name]);
   if (execution.payout_batch_id) rows.push(["payout_batch_id", execution.payout_batch_id]);
   if (execution.data_mode) rows.push(["Data mode", execution.data_mode]);
   rows.push(["Executed", String(execution.executed)]);
@@ -423,11 +463,14 @@ async function loadBenchmark() {
 
 function resultCell(row) {
   return [
-    el("td", {}, el("code", {}, row.chosen_route ?? "none"),
+    el("td", {}, el("code", {}, row.chosen_route ?? "no payment"),
       row.exclusion_reason ? el("div", { class: "no" }, row.exclusion_reason) : null),
     el("td", { class: row.mandate_compliant ? "yes" : "no" }, row.mandate_compliant ? "Yes" : "No"),
     el("td", { class: "num" }, row.dvs === null ? "not scored" : row.dvs.toFixed(1)),
     el("td", { class: "num" }, row.score.toFixed(1)),
+    el("td", { class: "num" }, row.recipient_loses_kes === null
+      ? "-"
+      : `KES ${row.recipient_loses_kes.toLocaleString("en-US")}`),
   ];
 }
 
@@ -439,7 +482,8 @@ function renderBenchmark(data) {
 
   const head = el("tr", {}, el("th", { scope: "col" }, "Test"), el("th", { scope: "col" }, "Agent"),
     el("th", { scope: "col" }, "Chosen route"), el("th", { scope: "col" }, "Compliant"),
-    el("th", { scope: "col", class: "num" }, "DVS"), el("th", { scope: "col", class: "num" }, "Score"));
+    el("th", { scope: "col", class: "num" }, "DVS"), el("th", { scope: "col", class: "num" }, "Score"),
+    el("th", { scope: "col", class: "num" }, "Recipient loses"));
 
   const body = data.scenarios.flatMap((scenario, index) => data.agents.map((agent, agentIndex) =>
     el("tr", {},
@@ -452,6 +496,10 @@ function renderBenchmark(data) {
   byId("benchmark").replaceChildren(
     el("div", { class: "scores" }, tiles),
     el("div", { class: "table-wrap" }, el("table", {}, el("thead", {}, head), el("tbody", {}, body))),
+    el("div", { class: "summary" }, data.agents.map((agent) => el("p", {},
+      el("strong", {}, agent.agent),
+      `: APB score ${agent.apb_score.toFixed(1)}, ${agent.tests_passed} of ${agent.tests_total} tests passed, `
+        + `KES ${agent.total_kes_lost.toLocaleString("en-US")} lost across the value tests`))),
     el("p", { class: "axis-note" },
       `Method ${data.method_version}, ${data.data_mode} data. Results are the best eligible route observed within the candidate set and quote window. `,
       el("a", { href: "/docs/METHOD.md" }, "Read the method")));
@@ -469,6 +517,9 @@ byId("tab-decide").addEventListener("click", () => selectTab("decide"));
 byId("tab-benchmark").addEventListener("click", () => selectTab("benchmark"));
 byId("run-a").addEventListener("click", () => runDecision({ case: "a" }));
 byId("run-b").addEventListener("click", () => runDecision({ case: "b" }));
+byId("run-c").addEventListener("click", () => runDecision({ case: "c" }));
+byId("run-d").addEventListener("click", () => runDecision({ case: "d" }));
+byId("run-e").addEventListener("click", () => runDecision({ case: "e" }));
 byId("run-text").addEventListener("click", () => {
   const text = byId("request").value.trim();
   if (text) runDecision({ text });

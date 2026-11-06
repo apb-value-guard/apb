@@ -5,20 +5,42 @@ import json
 from collections.abc import Sequence
 from datetime import datetime
 
-from apb.eligibility import apply_gate
-from apb.models import DecisionReceipt, PaymentMandate, RouteQuote
+from apb.eligibility import (
+    apply_gate,
+    hold_is_active,
+    needs_payee_confirmation,
+    payee_is_mismatched,
+)
+from apb.models import (
+    PAYEE_CONFIRM_MESSAGE,
+    PAYEE_STOP_MESSAGE,
+    SCREENING_STOP_MESSAGE,
+    DecisionReceipt,
+    PaymentMandate,
+    RouteQuote,
+)
 from apb.scoring import score_routes
 
 
 def mandate_hash(mandate: PaymentMandate) -> str:
-    """Return the sha256 of the mandate's canonical JSON."""
+    """Return the sha256 of the mandate's canonical JSON.
+
+    Unset optional fields are left out. Adding one must not change the hash of
+    existing mandates, because the hash decides the payout's sender_batch_id.
+    """
     canonical = json.dumps(
-        mandate.model_dump(mode="json"),
+        mandate.model_dump(mode="json", exclude_none=True),
         sort_keys=True,
         separators=(",", ":"),
         ensure_ascii=False,
     )
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _stop_reason(mandate: PaymentMandate) -> str | None:
+    if hold_is_active(mandate):
+        return SCREENING_STOP_MESSAGE
+    return PAYEE_STOP_MESSAGE if payee_is_mismatched(mandate) else None
 
 
 def _selection_key(quote: RouteQuote) -> tuple:
@@ -76,4 +98,10 @@ def decide(
         evidence_refs=evidence_refs,
         explanation=None,
         sponsored_routes=[q.provider for q in candidates if q.sponsored],
+        screening_result=mandate.screening_result,
+        stop_reason=_stop_reason(mandate),
+        payee_check=mandate.payee_check,
+        confirmation_reason=(
+            PAYEE_CONFIRM_MESSAGE if needs_payee_confirmation(mandate) else None
+        ),
     )

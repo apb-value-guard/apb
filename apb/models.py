@@ -36,6 +36,31 @@ class ReasonCode(str, Enum):
     AMOUNT_OUT_OF_LIMITS = "amount_out_of_limits"
     QUOTE_EXPIRED = "quote_expired"
     DISCLOSURE_MISSING = "disclosure_missing"
+    SCREENING_HOLD = "screening_hold"
+    KYC_NOT_VERIFIED = "kyc_not_verified"
+    PAYEE_MISMATCH = "payee_mismatch"
+
+
+SCREENING_STOP_MESSAGE = "Payment stopped: screening hold (simulated)"
+PAYEE_STOP_MESSAGE = "Payment stopped: payee name mismatch (simulated)"
+PAYEE_CONFIRM_MESSAGE = "Confirmation needed: payee name close match (simulated)"
+
+
+class ScreeningResult(_Model):
+    """A screening outcome supplied as input. APB does not screen anyone."""
+
+    status: Literal["clear", "hold"]
+    list: Literal["sanctions", "pep", "aml"] | None = None
+    source: Literal["simulated"]
+
+
+class PayeeCheck(_Model):
+    """A payee name check result supplied as input. APB runs no such check."""
+
+    result: Literal["match", "close_match", "no_match"]
+    expected_name: str
+    returned_name: str
+    source: Literal["simulated"]
 
 
 class PaymentMandate(_Model):
@@ -48,6 +73,9 @@ class PaymentMandate(_Model):
     deadline_minutes: PositiveInt
     objective: str
     approval_required_above_fee: NonNegativeMoney
+    screening_result: ScreeningResult | None = None
+    sender_verified_for: list[str] | None = None
+    payee_check: PayeeCheck | None = None
 
 
 class RouteQuote(_Model):
@@ -71,6 +99,7 @@ class RouteQuote(_Model):
     data_mode: Literal["live", "sandbox", "synthetic"]
     # True if the route pays a referral. Disclosed, and never used in scoring.
     sponsored: bool = False
+    requires_kyc: bool = False
 
 
 class ExcludedRoute(_Model):
@@ -95,3 +124,7 @@ class DecisionReceipt(_Model):
     explanation: str | None
     explanation_source: Literal["ai", "template"] | None = None
     sponsored_routes: list[str] = []
+    screening_result: ScreeningResult | None = None
+    stop_reason: str | None = None
+    payee_check: PayeeCheck | None = None
+    confirmation_reason: str | None = None

@@ -32,6 +32,9 @@ REASON_TEXT = {
     ReasonCode.AMOUNT_OUT_OF_LIMITS: "the quote does not cover the send amount",
     ReasonCode.QUOTE_EXPIRED: "the quote has expired",
     ReasonCode.DISCLOSURE_MISSING: "the quote left out required disclosures",
+    ReasonCode.SCREENING_HOLD: "a simulated screening hold stops every route",
+    ReasonCode.KYC_NOT_VERIFIED: "the sender has not passed KYC with this provider",
+    ReasonCode.PAYEE_MISMATCH: "the simulated payee name check found no match",
 }
 
 SYSTEM_PROMPT = """\
@@ -51,7 +54,11 @@ routes" or "two eligible routes". Name each route instead.
 - Refer to routes by their exact provider names from the receipt.
 - Do not recommend a different route or question the decision.
 - If data_mode is synthetic, say that the values are synthetic.
-- If sponsored_routes is not empty, name those routes as sponsored."""
+- If sponsored_routes is not empty, name those routes as sponsored.
+- If stop_reason is set, say the payment stopped, give that reason, say it is \
+simulated, and do not suggest any way to pay.
+- If confirmation_reason is set, say the payment waits for confirmation of a \
+close payee name match, and say the check is simulated."""
 
 # "one" is left out because it is common in ordinary prose ("the faster one").
 _NUMBER_WORDS = re.compile(
@@ -141,6 +148,14 @@ def _rejection_reasons(
         reasons.append("does not name the selected route")
     if receipt.sponsored_routes and "sponsor" not in lowered:
         reasons.append("does not disclose sponsored routes")
+    if receipt.stop_reason:
+        cause = "screening" if "screening" in receipt.stop_reason else "payee"
+        if cause not in lowered or "simulated" not in lowered:
+            reasons.append(f"does not say a simulated {cause} result stopped payment")
+    if receipt.confirmation_reason and not (
+        "confirm" in lowered and "payee" in lowered and "simulated" in lowered
+    ):
+        reasons.append("does not say the payment waits for payee confirmation")
     return reasons
 
 
@@ -149,7 +164,9 @@ def template_explanation(receipt: DecisionReceipt) -> str:
     quotes = {quote.provider: quote for quote in receipt.candidate_set}
     sentences = []
 
-    if receipt.selected_route:
+    if receipt.stop_reason:
+        sentences.append(f"{receipt.stop_reason}.")
+    elif receipt.selected_route:
         amount = quotes[receipt.selected_route].recipient_amount
         sentences.append(
             f"Selected {receipt.selected_route}: it delivers the most to the "
@@ -172,6 +189,13 @@ def template_explanation(receipt: DecisionReceipt) -> str:
             f"{provider} {score:.1f}" for provider, score in receipt.scores.items()
         )
         sentences.append(f"DVS per eligible route: {scores}.")
+
+    if receipt.confirmation_reason:
+        check = receipt.payee_check
+        sentences.append(
+            f"{receipt.confirmation_reason}: expected {check.expected_name}, "
+            f"returned {check.returned_name}."
+        )
 
     if receipt.sponsored_routes:
         sentences.append(

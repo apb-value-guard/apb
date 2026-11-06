@@ -15,6 +15,9 @@ from apb.models import PaymentMandate, RouteQuote
 Agent = Callable[[PaymentMandate, Sequence[RouteQuote]], str | None]
 AgentT = TypeVar("AgentT", bound=Agent)
 
+# An agent returns this instead of a provider to wait for a person to confirm.
+PAUSE = "pause_for_confirmation"
+
 KNOWN_BRANDS = {"paypal"}
 
 
@@ -33,7 +36,8 @@ def naive_agent(
 ) -> str | None:
     """A typical shortcut: sponsored first, then a known brand, then lowest fee.
 
-    It ignores the deadline and never rechecks its quote.
+    It ignores the deadline, screening holds, KYC and payee checks, and it never
+    rechecks its quote.
     """
 
     def preference(quote: RouteQuote) -> tuple:
@@ -53,7 +57,8 @@ def guarded_agent(
     mandate: PaymentMandate, quotes: Sequence[RouteQuote]
 ) -> str | None:
     """Our decide(): gate first, then score. It also rechecks at commit."""
-    return decide(mandate, quotes).selected_route
+    receipt = decide(mandate, quotes)
+    return PAUSE if receipt.confirmation_reason else receipt.selected_route
 
 
 AGENTS: dict[str, Agent] = {

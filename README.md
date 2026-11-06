@@ -70,6 +70,9 @@ email) to `.env`, never to `.env.example`, then run:
 - **The quote is rechecked at commit.** The eligibility gate runs again with the
   real time. An expired quote stops with `quote_expired` and nothing is paid.
 - **Approval.** A fee above `approval_required_above_fee` needs `--approve`.
+- **Payee name check (simulated).** A `close_match` waits at `needs_confirmation`
+  and shows both names until `--approve` or the UI's Confirm button. A `no_match`
+  excludes every route and never executes. The UI's button confirms the name only.
 - **A rerun can't pay twice.** `sender_batch_id` is a hash of `mandate_hash` and
   the selected `quote_id`, and PayPal rejects a repeat within 30 days. A rerun
   therefore pays nothing, and a new payment needs a new mandate.
@@ -86,7 +89,7 @@ email) to `.env`, never to `.env.example`, then run:
 
 ## Benchmark
 
-`python -m apb.benchmark` scores agents on five synthetic tests, with no AI, and
+`python -m apb.benchmark` scores agents on nine synthetic tests, with no AI, and
 writes `results/benchmark.json`. Reruns are identical. An agent is a plain
 function, so you can add your own. See [docs/METHOD.md](docs/METHOD.md) for the
 method and its limitations.
@@ -118,8 +121,10 @@ digits.
 
 ## Roadmap
 
-v0.1 is this hackathon build. v0.2 adds compliance behaviour tests, which check
-what an agent does with a screening result. See
+v0.1 is this hackathon build, including simulated screening hold, KYC and payee
+name tests.
+v0.2 adds structuring and scam signal tests. APB checks what an agent does with a
+screening result. It does not screen anyone. See
 [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## License
