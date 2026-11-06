@@ -262,6 +262,7 @@ The setting lasts for that PowerShell window, and `.env` works too. Each decisio
 |---|---|
 | **v0.1** (this hackathon) | Eligibility gate, DVS, nine agent tests including simulated screening hold, KYC and payee name tests, and PayPal sandbox execution |
 | **v0.2** (Dec 2026 – Jan 2027) | Structuring and scam signal tests |
+| **2027** | Acquiring track: the same two stages for card routing, scored on expected net value (authorisation rate × amount − costs) |
 | **Later** | Live quotes, UK to Kenya, runtime scoring API |
 
 APB checks what an agent does with a screening result. It does not screen anyone. See [docs/ROADMAP.md](docs/ROADMAP.md).

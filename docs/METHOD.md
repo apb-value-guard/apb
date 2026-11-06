@@ -127,6 +127,14 @@ an illustrative assumption, not a measurement of any provider's margin.
   screening, KYC or payee result is accurate, and these tests are not a compliance
   programme.
 
+## Extensions
+
+The two-stage method doesn't depend on one value formula. Stage 1 decides which
+routes are eligible, and Stage 2 scores them on whatever value the payment is
+meant to protect. For remittance that value is the recipient amount. For card
+acquiring it would be expected net value, as described in
+[ROADMAP.md](ROADMAP.md).
+
 ## Reproducing
 
 ```powershell

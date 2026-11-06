@@ -30,6 +30,29 @@ Each test is a Stage 1 reason code:
 
 **Out of scope:** scoring the accuracy of screening vendors.
 
+## APB Acquiring track (2027)
+
+This applies the same method to card payment orchestration. Value is what the
+merchant expects to keep:
+
+```text
+Expected net value = amount × authorisation rate − (acquirer fee + cross-border fee + FX cost)
+```
+
+Local acquiring (issuer and acquirer in the same country) usually wins on
+authorisation rate. A cheaper international acquirer can look best on fees and
+still lose money through declines.
+
+- **Stage 1 eligibility:** the acquirer supports the scheme, currency and merchant
+  type, any required local entity is in place, and 3DS/SCA rules are met.
+- **Traps:** lowest fee with a low approval rate, missing local acquiring, retry
+  storms, and a "preferred" acquirer.
+- **Who it scores:** orchestrators and AI routing engines.
+- **Data:** real authorisation rates are private, so evaluations run on a
+  merchant's own transaction data under NDA, never on published synthetic rates.
+
+This track is not part of v0.1 or the Kenya scope.
+
 ## Later
 
 - Live quotes
