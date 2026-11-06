@@ -122,6 +122,14 @@ an illustrative assumption, not a measurement of any provider's margin.
 This writes `results/benchmark.json`. The output has no timestamps, so reruns are
 identical.
 
+After the results change, refresh the chart and the README section. A test fails
+if either is out of date:
+
+```powershell
+.\.venv\Scripts\python.exe -m scripts.render_benchmark_svg
+.\.venv\Scripts\python.exe -m scripts.render_readme_results
+```
+
 ## Adding an agent
 
 An agent is a function from a mandate and quotes to a provider, or `None`:

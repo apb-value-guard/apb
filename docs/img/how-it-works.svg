@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-label="How APB Value Guard works" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <title>How APB Value Guard works</title>
+  <style>
+    .bg { fill: #ffffff; stroke: #d0d7de; }
+    .ink { fill: #1f2328; }
+    .muted { fill: #59636e; }
+    .wire { stroke: #59636e; fill: none; }
+    .head { fill: #59636e; }
+    .user { fill: #f1f2f4; stroke: #8a9099; }
+    .ai { fill: #efe9fb; stroke: #6b46c1; }
+    .code { fill: #e6f0fa; stroke: #2f5d8a; }
+    .pay { fill: #e4f4ea; stroke: #1c6b43; }
+    @media (prefers-color-scheme: dark) {
+    .bg { fill: #0d1117; stroke: #3d444d; }
+    .ink { fill: #f0f6fc; }
+    .muted { fill: #9198a1; }
+    .wire { stroke: #9198a1; fill: none; }
+    .head { fill: #9198a1; }
+    .user { fill: #21262d; stroke: #6e7681; }
+    .ai { fill: #2a2140; stroke: #a78bfa; }
+    .code { fill: #16283c; stroke: #7fb0dc; }
+    .pay { fill: #14301f; stroke: #6fcf9d; }
+    }
+  </style>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="head" d="M0 0 L10 5 L0 10 z"/></marker></defs>
+  <rect class="bg" x="0.5" y="0.5" width="1199" height="519" rx="14"/>
+  <rect class="ai" x="30" y="22" width="20" height="20" rx="4" stroke-width="1.5"/>
+  <text class="ink" x="58" y="37" font-size="15">AI step</text>
+  <rect class="code" x="160" y="22" width="20" height="20" rx="4" stroke-width="1.5"/>
+  <text class="ink" x="188" y="37" font-size="15">Code step</text>
+  <rect class="pay" x="290" y="22" width="20" height="20" rx="4" stroke-width="1.5"/>
+  <text class="ink" x="318" y="37" font-size="15">PayPal step</text>
+  <rect class="user" x="30" y="66" width="255" height="110" rx="10" stroke-width="1.5"/>
+  <text class="muted" x="157.5" y="90" text-anchor="middle" font-size="12" font-weight="600" letter-spacing="1">USER</text>
+  <text class="ink" x="157.5" y="122" text-anchor="middle" font-size="19" font-weight="600">Your sentence</text>
+  <text class="muted" x="157.5" y="146" text-anchor="middle" font-size="14">Send $200 home in 2 hours</text>
+  <path class="wire" d="M289 121.0 H321" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect class="ai" x="325" y="66" width="255" height="110" rx="10" stroke-width="1.5"/>
+  <text class="muted" x="452.5" y="90" text-anchor="middle" font-size="12" font-weight="600" letter-spacing="1">AI</text>
+  <text class="ink" x="452.5" y="122" text-anchor="middle" font-size="19" font-weight="600">Reads the mandate</text>
+  <text class="muted" x="452.5" y="146" text-anchor="middle" font-size="14">Code checks every field</text>
+  <path class="wire" d="M584 121.0 H616" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect class="code" x="620" y="66" width="255" height="110" rx="10" stroke-width="1.5"/>
+  <text class="muted" x="747.5" y="90" text-anchor="middle" font-size="12" font-weight="600" letter-spacing="1">CODE</text>
+  <text class="ink" x="747.5" y="122" text-anchor="middle" font-size="19" font-weight="600">Eligibility gate</text>
+  <text class="muted" x="747.5" y="146" text-anchor="middle" font-size="14">Excluded routes get reason codes</text>
+  <path class="wire" d="M879 121.0 H911" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect class="code" x="915" y="66" width="255" height="110" rx="10" stroke-width="1.5"/>
+  <text class="muted" x="1042.5" y="90" text-anchor="middle" font-size="12" font-weight="600" letter-spacing="1">CODE</text>
+  <text class="ink" x="1042.5" y="122" text-anchor="middle" font-size="19" font-weight="600">Scores DVS</text>
+  <text class="muted" x="1042.5" y="146" text-anchor="middle" font-size="14">Eligible routes only</text>
+  <path class="wire" d="M1042 180 V208 H157 V236" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect class="ai" x="30" y="240" width="255" height="110" rx="10" stroke-width="1.5"/>
+  <text class="muted" x="157.5" y="264" text-anchor="middle" font-size="12" font-weight="600" letter-spacing="1">AI</text>
+  <text class="ink" x="157.5" y="296" text-anchor="middle" font-size="19" font-weight="600">Explains the decision</text>
+  <text class="muted" x="157.5" y="320" text-anchor="middle" font-size="14">Grounding-checked, or template</text>
+  <rect class="pay" x="470" y="240" width="700" height="110" rx="10" stroke-width="1.5"/>
+  <text class="muted" x="820.0" y="264" text-anchor="middle" font-size="12" font-weight="600" letter-spacing="1">PAYPAL</text>
+  <text class="ink" x="820.0" y="296" text-anchor="middle" font-size="19" font-weight="600">PayPal sandbox pays</text>
+  <text class="muted" x="820.0" y="320" text-anchor="middle" font-size="14">Only if PayPal is the best eligible route and every check passes</text>
+  <rect class="code" x="470" y="380" width="700" height="110" rx="10" stroke-width="1.5"/>
+  <text class="muted" x="820.0" y="404" text-anchor="middle" font-size="12" font-weight="600" letter-spacing="1">CODE</text>
+  <text class="ink" x="820.0" y="436" text-anchor="middle" font-size="19" font-weight="600">Hand-off logged</text>
+  <text class="muted" x="820.0" y="460" text-anchor="middle" font-size="14">Another provider is the best eligible route, so no PayPal call</text>
+  <path class="wire" d="M289 295 H466" stroke-width="2" marker-end="url(#arrow)"/>
+  <path class="wire" d="M340 295 V435 H466" stroke-width="2" marker-end="url(#arrow)"/>
+</svg>
