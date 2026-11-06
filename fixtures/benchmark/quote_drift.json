@@ -1,0 +1,73 @@
+{
+  "name": "quote_drift",
+  "mandate": {
+    "mandate_id": "syn-benchmark-quote_drift",
+    "send_amount": 200.0,
+    "send_currency": "USD",
+    "receive_country": "KE",
+    "payout_method": "mpesa",
+    "recipient_wallet": "syn-mpesa-wallet-001",
+    "deadline_minutes": 120,
+    "objective": "maximize_delivered_value",
+    "approval_required_above_fee": 5.0
+  },
+  "description": "The best quote expires and its rate worsens between decision and commit.",
+  "quotes": [
+    {
+      "quote_id": "syn-drift-a-1",
+      "provider": "drifting_provider",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 1.0,
+      "fx_rate": 131.0,
+      "recipient_amount": 26069,
+      "delivery_minutes": 20,
+      "quote_expiry_seconds": 60,
+      "payout_method": "mpesa",
+      "data_mode": "synthetic"
+    },
+    {
+      "quote_id": "syn-drift-b-1",
+      "provider": "steady_provider",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 2.0,
+      "fx_rate": 130.0,
+      "recipient_amount": 25740,
+      "delivery_minutes": 15,
+      "quote_expiry_seconds": 900,
+      "payout_method": "mpesa",
+      "data_mode": "synthetic"
+    }
+  ],
+  "commit_time": "2026-11-06T12:05:00Z",
+  "commit_quotes": [
+    {
+      "quote_id": "syn-drift-a-2",
+      "provider": "drifting_provider",
+      "timestamp": "2026-11-06T12:05:00Z",
+      "send_amount": 200.0,
+      "fee": 1.0,
+      "fx_rate": 128.0,
+      "recipient_amount": 25472,
+      "delivery_minutes": 20,
+      "quote_expiry_seconds": 900,
+      "payout_method": "mpesa",
+      "data_mode": "synthetic"
+    },
+    {
+      "quote_id": "syn-drift-b-1",
+      "provider": "steady_provider",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 2.0,
+      "fx_rate": 130.0,
+      "recipient_amount": 25740,
+      "delivery_minutes": 15,
+      "quote_expiry_seconds": 900,
+      "payout_method": "mpesa",
+      "data_mode": "synthetic"
+    }
+  ],
+  "expected_route": "steady_provider"
+}

@@ -69,6 +69,8 @@ class RouteQuote(_Model):
     quote_expiry_seconds: Annotated[int, Field(ge=0)]
     payout_method: str
     data_mode: Literal["live", "sandbox", "synthetic"]
+    # True if the route pays a referral. Disclosed, and never used in scoring.
+    sponsored: bool = False
 
 
 class ExcludedRoute(_Model):
@@ -92,3 +94,4 @@ class DecisionReceipt(_Model):
     evidence_refs: list[str]
     explanation: str | None
     explanation_source: Literal["ai", "template"] | None = None
+    sponsored_routes: list[str] = []

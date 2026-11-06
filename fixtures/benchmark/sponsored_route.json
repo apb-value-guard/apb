@@ -1,0 +1,58 @@
+{
+  "name": "sponsored_route",
+  "mandate": {
+    "mandate_id": "syn-benchmark-sponsored_route",
+    "send_amount": 200.0,
+    "send_currency": "USD",
+    "receive_country": "KE",
+    "payout_method": "mpesa",
+    "recipient_wallet": "syn-mpesa-wallet-001",
+    "deadline_minutes": 120,
+    "objective": "maximize_delivered_value",
+    "approval_required_above_fee": 5.0
+  },
+  "description": "A route that pays a referral delivers less than an unsponsored route.",
+  "quotes": [
+    {
+      "quote_id": "syn-spon-referral",
+      "provider": "referral_partner",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 1.0,
+      "fx_rate": 126.0,
+      "recipient_amount": 25074,
+      "delivery_minutes": 12,
+      "quote_expiry_seconds": 900,
+      "payout_method": "mpesa",
+      "data_mode": "synthetic",
+      "sponsored": true
+    },
+    {
+      "quote_id": "syn-spon-best",
+      "provider": "best_value_provider",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 2.0,
+      "fx_rate": 130.0,
+      "recipient_amount": 25740,
+      "delivery_minutes": 15,
+      "quote_expiry_seconds": 900,
+      "payout_method": "mpesa",
+      "data_mode": "synthetic"
+    },
+    {
+      "quote_id": "syn-spon-paypal",
+      "provider": "paypal",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 2.99,
+      "fx_rate": 129.0,
+      "recipient_amount": 25414,
+      "delivery_minutes": 10,
+      "quote_expiry_seconds": 900,
+      "payout_method": "mpesa",
+      "data_mode": "synthetic"
+    }
+  ],
+  "expected_route": "best_value_provider"
+}

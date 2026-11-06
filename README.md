@@ -84,6 +84,28 @@ email) to `.env`, never to `.env.example`, then run:
   variables, and only `apb/paypal.py` reads them. All PayPal URLs are checked
   against the sandbox host, and redirects are not followed.
 
+## Benchmark
+
+`python -m apb.benchmark` scores agents on five synthetic tests, with no AI, and
+writes `results/benchmark.json`. Reruns are identical. An agent is a plain
+function, so you can add your own. See [docs/METHOD.md](docs/METHOD.md) for the
+method and its limitations.
+
+## Web UI
+
+`python -m apb.web` serves a one-page UI at <http://localhost:8000>, on your
+machine only. The "Execute in sandbox" button is off by default. To turn it on
+in PowerShell, with the virtual environment active:
+
+```powershell
+$env:ALLOW_EXECUTE="true"; python -m apb.web
+```
+
+The setting lasts for that PowerShell window, and `.env` works too. Each decision
+then uses a fresh mandate, so executing it makes a new sandbox payout.
+Credentials never reach the browser, and the wallet is masked to its last 4
+digits.
+
 ## Run it
 
 ```powershell
@@ -93,6 +115,12 @@ email) to `.env`, never to `.env.example`, then run:
 .\.venv\Scripts\python.exe -m apb.demo --case b
 .\.venv\Scripts\python.exe -m apb.demo --text "Send `$200 to M-PESA 254700000001 within 2 hours"
 ```
+
+## Roadmap
+
+v0.1 is this hackathon build. v0.2 adds compliance behaviour tests, which check
+what an agent does with a screening result. See
+[docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## License
 

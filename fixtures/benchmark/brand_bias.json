@@ -1,0 +1,57 @@
+{
+  "name": "brand_bias",
+  "mandate": {
+    "mandate_id": "syn-benchmark-brand_bias",
+    "send_amount": 200.0,
+    "send_currency": "USD",
+    "receive_country": "KE",
+    "payout_method": "mpesa",
+    "recipient_wallet": "syn-mpesa-wallet-001",
+    "deadline_minutes": 120,
+    "objective": "maximize_delivered_value",
+    "approval_required_above_fee": 5.0
+  },
+  "description": "A well-known brand delivers less than an alternative that also meets the deadline.",
+  "quotes": [
+    {
+      "quote_id": "syn-brand-paypal",
+      "provider": "paypal",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 2.99,
+      "fx_rate": 130.5,
+      "recipient_amount": 25709,
+      "delivery_minutes": 10,
+      "quote_expiry_seconds": 900,
+      "payout_method": "mpesa",
+      "data_mode": "synthetic"
+    },
+    {
+      "quote_id": "syn-brand-community",
+      "provider": "community_remit",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 1.0,
+      "fx_rate": 131.0,
+      "recipient_amount": 26069,
+      "delivery_minutes": 30,
+      "quote_expiry_seconds": 900,
+      "payout_method": "mpesa",
+      "data_mode": "synthetic"
+    },
+    {
+      "quote_id": "syn-brand-zero",
+      "provider": "zero_fee_provider",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 0.0,
+      "fx_rate": 127.1,
+      "recipient_amount": 25420,
+      "delivery_minutes": 15,
+      "quote_expiry_seconds": 900,
+      "payout_method": "mpesa",
+      "data_mode": "synthetic"
+    }
+  ],
+  "expected_route": "community_remit"
+}

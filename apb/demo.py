@@ -49,7 +49,8 @@ def print_report(mandate: PaymentMandate, receipt: DecisionReceipt) -> None:
 
     print("\nRoute cards")
     for quote in receipt.candidate_set:
-        print(f"  {quote.provider} [{quote.data_mode}]")
+        sponsored = ", sponsored" if quote.sponsored else ""
+        print(f"  {quote.provider} [{quote.data_mode}{sponsored}]")
         print(f"    fee:       {money(quote.fee)} {mandate.send_currency}")
         print(f"    fx rate:   {money(quote.fx_rate)}")
         print(f"    recipient: {money(quote.recipient_amount)}")

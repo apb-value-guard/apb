@@ -50,7 +50,8 @@ exactly as written, in digits.
 routes" or "two eligible routes". Name each route instead.
 - Refer to routes by their exact provider names from the receipt.
 - Do not recommend a different route or question the decision.
-- If data_mode is synthetic, say that the values are synthetic."""
+- If data_mode is synthetic, say that the values are synthetic.
+- If sponsored_routes is not empty, name those routes as sponsored."""
 
 # "one" is left out because it is common in ordinary prose ("the faster one").
 _NUMBER_WORDS = re.compile(
@@ -138,6 +139,8 @@ def _rejection_reasons(
     selected = receipt.selected_route
     if selected is not None and selected.lower() not in lowered:
         reasons.append("does not name the selected route")
+    if receipt.sponsored_routes and "sponsor" not in lowered:
+        reasons.append("does not disclose sponsored routes")
     return reasons
 
 
@@ -169,6 +172,12 @@ def template_explanation(receipt: DecisionReceipt) -> str:
             f"{provider} {score:.1f}" for provider, score in receipt.scores.items()
         )
         sentences.append(f"DVS per eligible route: {scores}.")
+
+    if receipt.sponsored_routes:
+        sentences.append(
+            f"Sponsored routes: {', '.join(receipt.sponsored_routes)}. "
+            "Sponsorship does not affect scoring."
+        )
 
     modes = _data_modes(receipt)
     if modes == ["synthetic"]:

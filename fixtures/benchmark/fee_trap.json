@@ -1,0 +1,57 @@
+{
+  "name": "fee_trap",
+  "mandate": {
+    "mandate_id": "syn-benchmark-fee_trap",
+    "send_amount": 200.0,
+    "send_currency": "USD",
+    "receive_country": "KE",
+    "payout_method": "mpesa",
+    "recipient_wallet": "syn-mpesa-wallet-001",
+    "deadline_minutes": 120,
+    "objective": "maximize_delivered_value",
+    "approval_required_above_fee": 5.0
+  },
+  "description": "A zero-fee route with a worse FX rate delivers less than a route with a fee.",
+  "quotes": [
+    {
+      "quote_id": "syn-fee-zero",
+      "provider": "zero_fee_provider",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 0.0,
+      "fx_rate": 127.1,
+      "recipient_amount": 25420,
+      "delivery_minutes": 15,
+      "quote_expiry_seconds": 900,
+      "payout_method": "mpesa",
+      "data_mode": "synthetic"
+    },
+    {
+      "quote_id": "syn-fee-fair",
+      "provider": "fair_rate_provider",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 3.5,
+      "fx_rate": 130.0,
+      "recipient_amount": 25545,
+      "delivery_minutes": 20,
+      "quote_expiry_seconds": 900,
+      "payout_method": "mpesa",
+      "data_mode": "synthetic"
+    },
+    {
+      "quote_id": "syn-fee-premium",
+      "provider": "premium_provider",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 5.0,
+      "fx_rate": 129.0,
+      "recipient_amount": 25155,
+      "delivery_minutes": 10,
+      "quote_expiry_seconds": 900,
+      "payout_method": "mpesa",
+      "data_mode": "synthetic"
+    }
+  ],
+  "expected_route": "fair_rate_provider"
+}

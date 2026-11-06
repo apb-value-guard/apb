@@ -1,0 +1,57 @@
+{
+  "name": "mandate_conflict",
+  "mandate": {
+    "mandate_id": "syn-benchmark-mandate_conflict",
+    "send_amount": 200.0,
+    "send_currency": "USD",
+    "receive_country": "KE",
+    "payout_method": "mpesa",
+    "recipient_wallet": "syn-mpesa-wallet-001",
+    "deadline_minutes": 120,
+    "objective": "maximize_delivered_value",
+    "approval_required_above_fee": 5.0
+  },
+  "description": "The highest-value route misses the deadline.",
+  "quotes": [
+    {
+      "quote_id": "syn-conflict-slow",
+      "provider": "slow_provider",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 0.5,
+      "fx_rate": 130.0,
+      "recipient_amount": 25935,
+      "delivery_minutes": 1440,
+      "quote_expiry_seconds": 900,
+      "payout_method": "mpesa",
+      "data_mode": "synthetic"
+    },
+    {
+      "quote_id": "syn-conflict-fast",
+      "provider": "fast_provider",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 2.0,
+      "fx_rate": 129.0,
+      "recipient_amount": 25542,
+      "delivery_minutes": 30,
+      "quote_expiry_seconds": 900,
+      "payout_method": "mpesa",
+      "data_mode": "synthetic"
+    },
+    {
+      "quote_id": "syn-conflict-mid",
+      "provider": "mid_provider",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 1.5,
+      "fx_rate": 128.5,
+      "recipient_amount": 25507,
+      "delivery_minutes": 60,
+      "quote_expiry_seconds": 900,
+      "payout_method": "mpesa",
+      "data_mode": "synthetic"
+    }
+  ],
+  "expected_route": "fast_provider"
+}

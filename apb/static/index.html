@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>APB Value Guard, built on PayPal</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --surface: #f7f7f5;
+    --panel: #ffffff;
+    --ink: #1f2328;
+    --muted: #5c636b;
+    --line: #dcdfe3;
+    --track: #e9ebee;
+    --bar: #2f5d8a;
+    --accent: #2f5d8a;
+    --accent-ink: #ffffff;
+    --good: #1c6b43;
+    --bad: #a3322a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface: #16181b;
+      --panel: #1f2226;
+      --ink: #e8eaed;
+      --muted: #a2a9b1;
+      --line: #363b41;
+      --track: #2c3036;
+      --bar: #7fb0dc;
+      --accent: #7fb0dc;
+      --accent-ink: #14171a;
+      --good: #6fcf9d;
+      --bad: #f09a92;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--surface);
+    color: var(--ink);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .page { max-width: 960px; margin: 0 auto; padding: 32px 16px 24px; }
+  h1 { font-size: 1.6rem; line-height: 1.25; margin: 0 0 4px; }
+  h2 { font-size: 1.05rem; margin: 32px 0 12px; }
+  .lede { color: var(--muted); margin: 0 0 24px; }
+  [hidden] { display: none !important; }
+
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 24px; }
+  .tab {
+    appearance: none; background: none; border: 0; color: var(--muted);
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+    padding: 10px 14px; font: inherit; cursor: pointer;
+  }
+  .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
+
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+  label { display: block; font-weight: 600; margin-bottom: 6px; }
+  textarea {
+    width: 100%; min-height: 76px; resize: vertical; padding: 10px;
+    background: var(--surface); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 6px; font: inherit;
+  }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; align-items: center; }
+  button.action {
+    font: inherit; padding: 8px 14px; border-radius: 6px; cursor: pointer;
+    background: var(--panel); color: var(--ink); border: 1px solid var(--line);
+  }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  button:disabled { opacity: .55; cursor: wait; }
+  button:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .status { color: var(--muted); margin-top: 16px; min-height: 1.5em; }
+  .message { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; margin-top: 16px; }
+  .message ul { margin: 8px 0 0; padding-left: 20px; }
+
+  .selected-line { font-size: 1.15rem; margin: 24px 0 0; }
+  .selected-line strong { font-weight: 650; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; }
+  .card.selected { border: 2px solid var(--accent); padding: 13px; }
+  .card-head { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; flex-wrap: wrap; margin-bottom: 8px; }
+  .card-name { font-weight: 600; overflow-wrap: anywhere; }
+  .badges { display: flex; flex-wrap: wrap; gap: 4px; }
+  .badge {
+    font-size: .75rem; line-height: 1.5; padding: 0 7px; border-radius: 999px;
+    border: 1px solid var(--line); color: var(--muted); white-space: nowrap;
+  }
+  .badge.strong { border-color: var(--accent); color: var(--ink); font-weight: 600; }
+  dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 0; font-size: .92rem; }
+  dt { color: var(--muted); }
+  dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+  .excluded-note { margin: 10px 0 0; font-size: .92rem; color: var(--bad); }
+
+  .dvs-row { display: grid; grid-template-columns: minmax(120px, 190px) 1fr 52px; gap: 10px; align-items: center; padding: 6px 0; }
+  .dvs-name { overflow-wrap: anywhere; font-size: .92rem; }
+  .dvs-track { height: 10px; background: var(--track); border-radius: 4px; }
+  .dvs-bar { height: 100%; background: var(--bar); border-radius: 4px; min-width: 2px; }
+  .dvs-value { text-align: right; font-variant-numeric: tabular-nums; font-size: .92rem; }
+  .axis-note { color: var(--muted); font-size: .85rem; margin: 6px 0 0; }
+
+  .request-panel { margin-top: 24px; }
+  .request-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; font-weight: 600; }
+  .request-panel dl { max-width: 380px; }
+
+  details.receipt { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; margin-top: 32px; }
+  details.receipt > summary { cursor: pointer; padding: 12px 16px; font-weight: 600; }
+  .receipt-body { padding: 0 16px 16px; }
+  .receipt-body h3 { font-size: .92rem; color: var(--muted); margin: 12px 0 4px; font-weight: 600; }
+  .receipt-body ul { margin: 0; padding-left: 20px; }
+  .receipt-json {
+    margin: 0; padding: 12px; max-height: 360px; overflow: auto;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+    font: .82rem/1.45 ui-monospace, SFMono-Regular, Consolas, monospace;
+  }
+  .json-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 12px 0 6px; }
+  .json-head h3 { margin: 0; }
+
+  code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .9em; overflow-wrap: anywhere; }
+
+  .table-wrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+  th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+  thead th { color: var(--muted); font-weight: 600; }
+  tbody tr:last-child td, tbody tr:last-child th { border-bottom: 0; }
+  tfoot td, tfoot th { border-top: 2px solid var(--line); border-bottom: 0; font-weight: 650; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .no { color: var(--bad); font-weight: 600; }
+  .yes { color: var(--good); }
+  .scores { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .score-number { font-size: 2rem; font-weight: 650; line-height: 1.2; font-variant-numeric: tabular-nums; }
+  .score-label { color: var(--muted); font-size: .92rem; }
+  a { color: var(--accent); }
+
+  footer {
+    margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line);
+    color: var(--muted); font-size: .88rem;
+  }
+  @media (max-width: 520px) {
+    .dvs-row { grid-template-columns: 1fr 52px; }
+    .dvs-name { grid-column: 1 / -1; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>APB Value Guard, built on PayPal</h1>
+    <p class="lede">Picks the best eligible route observed within the candidate set and quote window, scored on what the recipient receives.</p>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Sections">
+    <button class="tab" role="tab" id="tab-decide" aria-controls="view-decide" aria-selected="true">Decide</button>
+    <button class="tab" role="tab" id="tab-benchmark" aria-controls="view-benchmark" aria-selected="false">Benchmark</button>
+  </div>
+
+  <main>
+    <section id="view-decide" role="tabpanel" aria-labelledby="tab-decide">
+      <div class="panel">
+        <label for="request">Payment request</label>
+        <textarea id="request" maxlength="1000" placeholder="Send $200 to M-PESA 254700000001 within 2 hours"></textarea>
+        <div class="actions">
+          <button class="action primary" id="run-text">Run</button>
+          <button class="action" id="run-a">Case A: 2 hour deadline</button>
+          <button class="action" id="run-b">Case B: 2 day deadline</button>
+        </div>
+      </div>
+      <p class="status" id="status" role="status"></p>
+      <div id="result"></div>
+    </section>
+
+    <section id="view-benchmark" role="tabpanel" aria-labelledby="tab-benchmark" hidden>
+      <div id="benchmark"></div>
+    </section>
+  </main>
+
+  <footer>All quotes are synthetic. Payouts run in PayPal sandbox. No real money moves.</footer>
+</div>
+
+<script>
+"use strict";
+
+const byId = (id) => document.getElementById(id);
+
+// All content goes in as text nodes, so AI and user text can't become markup.
+function el(tag, props = {}, ...children) {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(props)) {
+    if (key === "class") node.className = value;
+    else if (key === "style") node.style.cssText = value;
+    else node.setAttribute(key, value);
+  }
+  for (const child of children.flat()) {
+    if (child !== null && child !== undefined) node.append(child);
+  }
+  return node;
+}
+
+async function api(path, body) {
+  const options = body === undefined ? {} : {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  };
+  const response = await fetch(path, options);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.detail || `Request failed (${response.status})`);
+  return data;
+}
+
+const missing = (value) => value === null || value === undefined;
+const whole = (value) => missing(value) ? "not disclosed" : Number(value).toLocaleString("en-US");
+
+// Display only. The receipt keeps its raw values.
+function amount(currency, value) {
+  if (missing(value)) return "not disclosed";
+  const number = Number(value);
+  const digits = currency === "KES" && Number.isInteger(number) ? 0 : 2;
+  return `${currency} ${number.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: 2 })}`;
+}
+
+function rate(sendCurrency, receiveCurrency, value) {
+  if (missing(value)) return "not disclosed";
+  const number = Number(value).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+  return `${receiveCurrency} ${number} per ${sendCurrency}`;
+}
+
+let allowExecute = false;
+let decisionId = null;
+const configReady = api("/api/config")
+  .then((config) => { allowExecute = config.allow_execute; })
+  .catch(() => {});
+
+function setBusy(busy) {
+  for (const id of ["run-text", "run-a", "run-b"]) byId(id).disabled = busy;
+}
+
+async function runDecision(body) {
+  setBusy(true);
+  decisionId = null;
+  byId("status").textContent = "Deciding...";
+  byId("result").replaceChildren();
+  try {
+    const data = await api("/api/decide", body);
+    await configReady;
+    renderOutcome(data);
+    byId("status").textContent = "";
+  } catch (error) {
+    byId("status").textContent = error.message;
+  } finally {
+    setBusy(false);
+  }
+}
+
+function renderOutcome(data) {
+  if (data.status === "ok") {
+    decisionId = data.decision_id;
+    renderDecision(data);
+    return;
+  }
+  const box = el("div", { class: "message" });
+  if (data.status === "missing_fields") {
+    box.append(el("strong", {}, "More information is needed"));
+    box.append(el("ul", {}, data.missing_fields.map((item) => el("li", {}, item.question))));
+  } else {
+    box.append(el("strong", {}, data.status === "out_of_scope" ? "Out of scope" : "AI is not available"));
+    box.append(el("div", {}, data.message));
+  }
+  byId("result").replaceChildren(box);
+}
+
+function requestPanel(request) {
+  const fromAi = request.source === "ai";
+  return el("div", { class: "panel request-panel" },
+    el("div", { class: "request-head" },
+      fromAi ? "AI read your request as:" : "Fixture request:",
+      el("span", { class: "badge" }, request.source)),
+    el("dl", {},
+      el("dt", {}, "Amount"), el("dd", {}, amount(request.currency, request.amount)),
+      el("dt", {}, "Currency"), el("dd", {}, request.currency),
+      el("dt", {}, "Payout method"), el("dd", {}, request.payout_method),
+      el("dt", {}, "Wallet"), el("dd", {}, request.wallet),
+      el("dt", {}, "Deadline"), el("dd", {}, `${whole(request.deadline_minutes)} minutes`)));
+}
+
+function copyButton(getText) {
+  const button = el("button", { class: "action", type: "button" }, "Copy");
+  button.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(getText());
+      button.textContent = "Copied";
+    } catch {
+      button.textContent = "Copy failed";
+    }
+    setTimeout(() => { button.textContent = "Copy"; }, 1500);
+  });
+  return button;
+}
+
+function receiptSection(receipt, open = false) {
+  const json = JSON.stringify(receipt, null, 2);
+  const section = el("details", { class: "receipt", id: "receipt-section" },
+    el("summary", {}, "Decision receipt"),
+    el("div", { class: "receipt-body" },
+      el("h3", {}, "mandate_hash"),
+      el("code", {}, receipt.mandate_hash),
+      el("h3", {}, "evidence_refs"),
+      el("ul", {}, receipt.evidence_refs.map((ref) => el("li", {}, el("code", {}, ref)))),
+      el("div", { class: "json-head" }, el("h3", {}, "Full receipt"), copyButton(() => json)),
+      el("pre", { class: "receipt-json", tabindex: "0" }, json)));
+  section.open = open;
+  return section;
+}
+
+function routeCard(quote, receipt, mandate, receiveCurrency, reasons) {
+  const selected = quote.provider === receipt.selected_route;
+  const reason = reasons.get(quote.provider);
+  const badges = [el("span", { class: "badge" }, quote.data_mode)];
+  if (selected) badges.unshift(el("span", { class: "badge strong" }, "Selected"));
+  if (quote.sponsored) badges.push(el("span", { class: "badge" }, "Sponsored"));
+  return el("article", { class: selected ? "card selected" : "card" },
+    el("div", { class: "card-head" },
+      el("span", { class: "card-name" }, quote.provider),
+      el("span", { class: "badges" }, badges)),
+    el("dl", {},
+      el("dt", {}, "Recipient gets"), el("dd", {}, amount(receiveCurrency, quote.recipient_amount)),
+      el("dt", {}, "Fee"), el("dd", {}, amount(mandate.send_currency, quote.fee)),
+      el("dt", {}, "FX rate"), el("dd", {}, rate(mandate.send_currency, receiveCurrency, quote.fx_rate)),
+      el("dt", {}, "Delivery"), el("dd", {}, `${whole(quote.delivery_minutes)} min`)),
+    reason ? el("p", { class: "excluded-note" }, "Excluded: ", el("code", {}, reason)) : null);
+}
+
+function dvsRow(provider, score, selected) {
+  return el("div", { class: "dvs-row", title: `${provider}: DVS ${score.toFixed(1)}` },
+    el("span", { class: "dvs-name" }, provider, selected ? " (selected)" : ""),
+    el("div", { class: "dvs-track" }, el("div", { class: "dvs-bar", style: `width:${score}%` })),
+    el("span", { class: "dvs-value" }, score.toFixed(1)));
+}
+
+function renderDecision(data) {
+  const { receipt, mandate, request, receive_currency: receiveCurrency } = data;
+  const reasons = new Map(receipt.excluded_routes.map((route) => [route.provider, route.reason]));
+  const sections = [
+    requestPanel(request),
+    el("p", { class: "selected-line" },
+      receipt.selected_route
+        ? ["Selected route: ", el("strong", {}, receipt.selected_route)]
+        : "No route passed eligibility."),
+    el("h2", {}, "Routes"),
+    el("div", { class: "cards" }, receipt.candidate_set.map((quote) => routeCard(quote, receipt, mandate, receiveCurrency, reasons))),
+    el("h2", {}, "Exclusions"),
+    receipt.excluded_routes.length
+      ? el("div", { class: "panel" }, receipt.excluded_routes.map((route) =>
+          el("div", {}, `${route.provider}: `, el("code", {}, route.reason))))
+      : el("div", { class: "panel" }, "No routes were excluded."),
+    el("h2", {}, "Delivered Value Score"),
+    el("div", { class: "panel" },
+      Object.entries(receipt.scores).map(([provider, score]) =>
+        dvsRow(provider, score, provider === receipt.selected_route)),
+      el("p", { class: "axis-note" }, "Bars run from 0 to 100. Excluded routes are not scored.")),
+    el("h2", {}, "Explanation ",
+      el("span", { class: "badge" }, receipt.explanation_source === "ai" ? "AI, grounding checked" : "Template")),
+    el("div", { class: "panel" }, receipt.explanation),
+  ];
+  if (receipt.sponsored_routes.length) {
+    sections.push(el("p", { class: "axis-note" },
+      `Sponsored: ${receipt.sponsored_routes.join(", ")}. Sponsorship does not affect scoring.`));
+  }
+  if (allowExecute) sections.push(executePanel());
+  sections.push(receiptSection(receipt));
+  byId("result").replaceChildren(...sections);
+}
+
+function executePanel() {
+  const button = el("button", { class: "action primary" }, "Execute in sandbox");
+  const output = el("div", { role: "status" });
+  button.addEventListener("click", async () => {
+    button.disabled = true;
+    output.textContent = "Sending to PayPal sandbox...";
+    try {
+      const { execution, receipt } = await api("/api/execute", { decision_id: decisionId });
+      output.replaceChildren(executionResult(execution));
+      const current = byId("receipt-section");
+      current.replaceWith(receiptSection(receipt, current.open));
+    } catch (error) {
+      output.textContent = error.message;
+    }
+    button.disabled = false;
+  });
+  return el("div", {},
+    el("h2", {}, "Execution"),
+    el("div", { class: "panel" },
+      el("div", { class: "actions", style: "margin-top:0" }, button),
+      output));
+}
+
+function executionResult(execution) {
+  const rows = [["Status", execution.status]];
+  if (execution.reason) rows.push(["Reason", execution.reason]);
+  if (execution.payout_batch_id) rows.push(["payout_batch_id", execution.payout_batch_id]);
+  if (execution.data_mode) rows.push(["Data mode", execution.data_mode]);
+  rows.push(["Executed", String(execution.executed)]);
+  return el("div", { style: "margin-top:12px" },
+    el("dl", {}, rows.flatMap(([name, value]) => [el("dt", {}, name), el("dd", {}, el("code", {}, value))])),
+    execution.note ? el("p", { class: "axis-note" }, execution.note) : null);
+}
+
+let benchmarkLoaded = false;
+
+async function loadBenchmark() {
+  if (benchmarkLoaded) return;
+  const target = byId("benchmark");
+  target.textContent = "Loading...";
+  try {
+    renderBenchmark(await api("/api/benchmark"));
+    benchmarkLoaded = true;
+  } catch (error) {
+    target.textContent = error.message;
+  }
+}
+
+function resultCell(row) {
+  return [
+    el("td", {}, el("code", {}, row.chosen_route ?? "none"),
+      row.exclusion_reason ? el("div", { class: "no" }, row.exclusion_reason) : null),
+    el("td", { class: row.mandate_compliant ? "yes" : "no" }, row.mandate_compliant ? "Yes" : "No"),
+    el("td", { class: "num" }, row.dvs === null ? "not scored" : row.dvs.toFixed(1)),
+    el("td", { class: "num" }, row.score.toFixed(1)),
+  ];
+}
+
+function renderBenchmark(data) {
+  const tiles = data.agents.map((agent) => el("div", { class: "panel" },
+    el("div", { class: "score-number" }, agent.apb_score.toFixed(1)),
+    el("div", { class: "score-label" }, `${agent.agent}: APB score`),
+    el("div", { class: "score-label" }, `Best route in ${agent.tests_passed} of ${agent.tests_total} tests`)));
+
+  const head = el("tr", {}, el("th", { scope: "col" }, "Test"), el("th", { scope: "col" }, "Agent"),
+    el("th", { scope: "col" }, "Chosen route"), el("th", { scope: "col" }, "Compliant"),
+    el("th", { scope: "col", class: "num" }, "DVS"), el("th", { scope: "col", class: "num" }, "Score"));
+
+  const body = data.scenarios.flatMap((scenario, index) => data.agents.map((agent, agentIndex) =>
+    el("tr", {},
+      agentIndex === 0
+        ? el("th", { scope: "row", rowspan: String(data.agents.length), title: scenario.description }, scenario.name)
+        : null,
+      el("td", {}, agent.agent),
+      resultCell(agent.scenarios[index]))));
+
+  byId("benchmark").replaceChildren(
+    el("div", { class: "scores" }, tiles),
+    el("div", { class: "table-wrap" }, el("table", {}, el("thead", {}, head), el("tbody", {}, body))),
+    el("p", { class: "axis-note" },
+      `Method ${data.method_version}, ${data.data_mode} data. Results are the best eligible route observed within the candidate set and quote window. `,
+      el("a", { href: "/docs/METHOD.md" }, "Read the method")));
+}
+
+function selectTab(name) {
+  for (const tab of ["decide", "benchmark"]) {
+    byId(`tab-${tab}`).setAttribute("aria-selected", String(tab === name));
+    byId(`view-${tab}`).hidden = tab !== name;
+  }
+  if (name === "benchmark") loadBenchmark();
+}
+
+byId("tab-decide").addEventListener("click", () => selectTab("decide"));
+byId("tab-benchmark").addEventListener("click", () => selectTab("benchmark"));
+byId("run-a").addEventListener("click", () => runDecision({ case: "a" }));
+byId("run-b").addEventListener("click", () => runDecision({ case: "b" }));
+byId("run-text").addEventListener("click", () => {
+  const text = byId("request").value.trim();
+  if (text) runDecision({ text });
+  else byId("status").textContent = "Enter a payment request, or pick a case.";
+});
+
+</script>
+</body>
+</html>

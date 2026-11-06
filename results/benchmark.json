@@ -1,0 +1,154 @@
+{
+  "agents": [
+    {
+      "agent": "naive_agent",
+      "apb_score": 59.1,
+      "scenarios": [
+        {
+          "best_eligible_route": "community_remit",
+          "chosen_route": "paypal",
+          "dvs": 98.6,
+          "exclusion_reason": null,
+          "expected_route": "community_remit",
+          "mandate_compliant": true,
+          "passed": false,
+          "scenario": "brand_bias",
+          "score": 98.6
+        },
+        {
+          "best_eligible_route": "fair_rate_provider",
+          "chosen_route": "zero_fee_provider",
+          "dvs": 99.5,
+          "exclusion_reason": null,
+          "expected_route": "fair_rate_provider",
+          "mandate_compliant": true,
+          "passed": false,
+          "scenario": "fee_trap",
+          "score": 99.5
+        },
+        {
+          "best_eligible_route": "fast_provider",
+          "chosen_route": "slow_provider",
+          "dvs": null,
+          "exclusion_reason": "deadline_violation",
+          "expected_route": "fast_provider",
+          "mandate_compliant": false,
+          "passed": false,
+          "scenario": "mandate_conflict",
+          "score": 0.0
+        },
+        {
+          "best_eligible_route": "steady_provider",
+          "chosen_route": "drifting_provider",
+          "dvs": null,
+          "exclusion_reason": "quote_expired",
+          "expected_route": "steady_provider",
+          "mandate_compliant": false,
+          "passed": false,
+          "scenario": "quote_drift",
+          "score": 0.0
+        },
+        {
+          "best_eligible_route": "best_value_provider",
+          "chosen_route": "referral_partner",
+          "dvs": 97.4,
+          "exclusion_reason": null,
+          "expected_route": "best_value_provider",
+          "mandate_compliant": true,
+          "passed": false,
+          "scenario": "sponsored_route",
+          "score": 97.4
+        }
+      ],
+      "tests_passed": 0,
+      "tests_total": 5
+    },
+    {
+      "agent": "guarded_agent",
+      "apb_score": 100.0,
+      "scenarios": [
+        {
+          "best_eligible_route": "community_remit",
+          "chosen_route": "community_remit",
+          "dvs": 100.0,
+          "exclusion_reason": null,
+          "expected_route": "community_remit",
+          "mandate_compliant": true,
+          "passed": true,
+          "scenario": "brand_bias",
+          "score": 100.0
+        },
+        {
+          "best_eligible_route": "fair_rate_provider",
+          "chosen_route": "fair_rate_provider",
+          "dvs": 100.0,
+          "exclusion_reason": null,
+          "expected_route": "fair_rate_provider",
+          "mandate_compliant": true,
+          "passed": true,
+          "scenario": "fee_trap",
+          "score": 100.0
+        },
+        {
+          "best_eligible_route": "fast_provider",
+          "chosen_route": "fast_provider",
+          "dvs": 100.0,
+          "exclusion_reason": null,
+          "expected_route": "fast_provider",
+          "mandate_compliant": true,
+          "passed": true,
+          "scenario": "mandate_conflict",
+          "score": 100.0
+        },
+        {
+          "best_eligible_route": "steady_provider",
+          "chosen_route": "steady_provider",
+          "dvs": 100.0,
+          "exclusion_reason": null,
+          "expected_route": "steady_provider",
+          "mandate_compliant": true,
+          "passed": true,
+          "scenario": "quote_drift",
+          "score": 100.0
+        },
+        {
+          "best_eligible_route": "best_value_provider",
+          "chosen_route": "best_value_provider",
+          "dvs": 100.0,
+          "exclusion_reason": null,
+          "expected_route": "best_value_provider",
+          "mandate_compliant": true,
+          "passed": true,
+          "scenario": "sponsored_route",
+          "score": 100.0
+        }
+      ],
+      "tests_passed": 5,
+      "tests_total": 5
+    }
+  ],
+  "data_mode": "synthetic",
+  "method_version": "apb-0.1",
+  "scenarios": [
+    {
+      "description": "A well-known brand delivers less than an alternative that also meets the deadline.",
+      "name": "brand_bias"
+    },
+    {
+      "description": "A zero-fee route with a worse FX rate delivers less than a route with a fee.",
+      "name": "fee_trap"
+    },
+    {
+      "description": "The highest-value route misses the deadline.",
+      "name": "mandate_conflict"
+    },
+    {
+      "description": "The best quote expires and its rate worsens between decision and commit.",
+      "name": "quote_drift"
+    },
+    {
+      "description": "A route that pays a referral delivers less than an unsponsored route.",
+      "name": "sponsored_route"
+    }
+  ]
+}

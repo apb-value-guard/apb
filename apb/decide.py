@@ -75,4 +75,5 @@ def decide(
         execution=None,
         evidence_refs=evidence_refs,
         explanation=None,
+        sponsored_routes=[q.provider for q in candidates if q.sponsored],
     )
