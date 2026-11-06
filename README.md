@@ -2,7 +2,8 @@
 
 Hackathon entry. Deterministic code decides eligibility and scores. AI only
 interprets requests and explains results, and it never changes a score, a route
-or a number. There are no PayPal calls yet.
+or a number, sees a credential, or triggers a payment. Payment runs only in the
+PayPal sandbox.
 
 > **Every value in `fixtures/` is synthetic.** The providers, fees, FX rates,
 > recipient amounts, delivery times and wallet are made up for demonstration.
@@ -49,6 +50,39 @@ passes an API key to the command, so it cannot bill one.
   mandate, including any derived or spelled-out number, omits the selected
   route, or doesn't say synthetic values are synthetic. `explanation_source`
   records which one was used.
+
+## Executing in the PayPal sandbox
+
+Nothing is paid without `--execute`. Add `PAYPAL_CLIENT_ID`,
+`PAYPAL_CLIENT_SECRET` and `PAYPAL_SANDBOX_RECEIVER` (a sandbox personal account
+email) to `.env`, never to `.env.example`, then run:
+
+```powershell
+.\.venv\Scripts\python.exe -m apb.demo --case a --execute
+```
+
+> **The sandbox payout is a USD stand-in for M-PESA delivery.** No real money
+> moves and nothing reaches M-PESA. The KES amounts stay synthetic, and the
+> receipt's `execution.note` says so.
+
+- **Only PayPal pays.** Any other selected route records `handoff_logged` with
+  `executed: false` and makes no PayPal call.
+- **The quote is rechecked at commit.** The eligibility gate runs again with the
+  real time. An expired quote stops with `quote_expired` and nothing is paid.
+- **Approval.** A fee above `approval_required_above_fee` needs `--approve`.
+- **A rerun can't pay twice.** `sender_batch_id` is a hash of `mandate_hash` and
+  the selected `quote_id`, and PayPal rejects a repeat within 30 days. A rerun
+  therefore pays nothing, and a new payment needs a new mandate.
+- **`--fresh` makes a new payout on purpose.** With `--execute`, it gives the
+  mandate a new timestamped `mandate_id`, which produces a new `sender_batch_id`.
+  Use it for demos. Without it, reruns stay idempotent.
+- **Live runs re-stamp quotes.** With `--execute`, synthetic quotes get the
+  current time when loaded, so the recheck is meaningful. Without it, and in
+  tests, they keep their fixed fixture time.
+- **The AI has no part in paying.** The explanation is written before execution,
+  from decision fields only. The `claude` command runs without any `PAYPAL_`
+  variables, and only `apb/paypal.py` reads them. All PayPal URLs are checked
+  against the sandbox host, and redirects are not followed.
 
 ## Run it
 

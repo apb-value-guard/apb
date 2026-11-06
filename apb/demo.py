@@ -3,10 +3,12 @@
 import argparse
 import json
 import sys
+from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
 
 from apb.decide import decide
+from apb.execute import execute
 from apb.explain import with_explanation
 from apb.models import DecisionReceipt, PaymentMandate, RouteQuote
 from apb.parser import parse_mandate
@@ -20,9 +22,18 @@ def load_mandate(case: str) -> PaymentMandate:
     return PaymentMandate.model_validate(json.loads(path.read_text("utf-8")))
 
 
-def load_quotes() -> list[RouteQuote]:
+def load_quotes(stamp: datetime | None = None) -> list[RouteQuote]:
+    """Load the fixtures. `stamp` re-stamps synthetic quotes for a live run."""
     path = FIXTURES / "us_ke.json"
-    return [RouteQuote.model_validate(q) for q in json.loads(path.read_text("utf-8"))]
+    quotes = [RouteQuote.model_validate(q) for q in json.loads(path.read_text("utf-8"))]
+    if stamp is None:
+        return quotes
+    return [
+        quote.model_copy(update={"timestamp": stamp})
+        if quote.data_mode == "synthetic"
+        else quote
+        for quote in quotes
+    ]
 
 
 def money(value: Decimal | None) -> str:
@@ -60,15 +71,43 @@ def print_report(mandate: PaymentMandate, receipt: DecisionReceipt) -> None:
     print(f"\nExplanation ({receipt.explanation_source})")
     print(f"  {receipt.explanation}")
 
+    if receipt.execution is not None:
+        print("\nExecution")
+        print(json.dumps(receipt.execution, indent=2))
+
     print("\nReceipt")
     print(receipt.model_dump_json(indent=2))
 
 
-def run_mandate(mandate: PaymentMandate) -> None:
-    print_report(mandate, with_explanation(decide(mandate, load_quotes()), mandate))
+def fresh_mandate(mandate: PaymentMandate, now: datetime) -> PaymentMandate:
+    """Return a copy with a new mandate_id, so it can make a new payout."""
+    suffix = now.strftime("%Y%m%dT%H%M%SZ")
+    return mandate.model_copy(
+        update={"mandate_id": f"{mandate.mandate_id}-fresh-{suffix}"}
+    )
 
 
-def run_text(text: str) -> int:
+def run_mandate(
+    mandate: PaymentMandate,
+    pay: bool = False,
+    approve: bool = False,
+    fresh: bool = False,
+) -> None:
+    """Decide and explain, then pay only if `pay` is set."""
+    stamp = datetime.now(UTC) if pay else None
+    if fresh:
+        mandate = fresh_mandate(mandate, stamp)
+    receipt = decide(mandate, load_quotes(stamp), now=stamp)
+    # The explanation is finished before any payment step begins.
+    receipt = with_explanation(receipt, mandate)
+    if pay:
+        receipt = execute(receipt, mandate, datetime.now(UTC), approve)
+    print_report(mandate, receipt)
+
+
+def run_text(
+    text: str, pay: bool = False, approve: bool = False, fresh: bool = False
+) -> int:
     """Parse the text and decide. Returns the process exit code."""
     result = parse_mandate(text)
 
@@ -95,7 +134,7 @@ def run_text(text: str) -> int:
     print("Parsed mandate")
     print(result.mandate.model_dump_json(indent=2))
     print()
-    run_mandate(result.mandate)
+    run_mandate(result.mandate, pay, approve, fresh)
     return 0
 
 
@@ -105,11 +144,24 @@ def main() -> int:
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--case", choices=["a", "b"])
     source.add_argument("--text", help="a payment request in plain English")
+    parser.add_argument(
+        "--execute", action="store_true", help="pay via the PayPal sandbox"
+    )
+    parser.add_argument(
+        "--approve", action="store_true", help="approve a fee above the mandate limit"
+    )
+    parser.add_argument(
+        "--fresh",
+        action="store_true",
+        help="use a new mandate_id, so --execute makes a new sandbox payout",
+    )
     args = parser.parse_args()
+    if args.fresh and not args.execute:
+        parser.error("--fresh needs --execute")
 
     if args.text is not None:
-        return run_text(args.text)
-    run_mandate(load_mandate(args.case))
+        return run_text(args.text, args.execute, args.approve, args.fresh)
+    run_mandate(load_mandate(args.case), args.execute, args.approve, args.fresh)
     return 0
 
 

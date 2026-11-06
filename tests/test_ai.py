@@ -469,8 +469,9 @@ def test_model_receives_the_receipt_mandate_and_allowed_numbers(receipt):
 
     call = client.beta.messages.create.call_args.kwargs
     sent = json.loads(call["messages"][0]["content"])
+    decision_only = {"quote_rechecked_at_commit", "user_approved", "execution"}
     assert sent == {
-        "receipt": receipt.model_dump(mode="json"),
+        "receipt": receipt.model_dump(mode="json", exclude=decision_only),
         "mandate": mandate.model_dump(mode="json"),
         "allowed_numbers": allowed_numbers(receipt, mandate),
     }

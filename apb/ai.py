@@ -97,8 +97,13 @@ def request_options() -> dict[str, Any]:
 
 
 def _cli_environment() -> dict[str, str]:
+    """Return the CLI's environment, without keys or any PayPal credentials."""
     removed = _CLI_BILLING_VARIABLES | _CLI_SESSION_VARIABLES
-    return {key: value for key, value in os.environ.items() if key not in removed}
+    return {
+        key: value
+        for key, value in os.environ.items()
+        if key not in removed and not key.upper().startswith("PAYPAL_")
+    }
 
 
 def _run_claude(system: str, user: str) -> str:

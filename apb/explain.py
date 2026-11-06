@@ -61,6 +61,9 @@ _NUMBER_WORDS = re.compile(
 )
 _PLAIN_NUMBER = re.compile(r"\d+(?:\.\d+)?")
 
+# The AI explains the decision only. It never sees what happened at commit.
+_COMMIT_FIELDS = {"quote_rechecked_at_commit", "user_approved", "execution"}
+
 
 def allowed_numbers(
     receipt: DecisionReceipt, mandate: PaymentMandate | None = None
@@ -92,7 +95,7 @@ def allowed_numbers(
     walk(
         receipt.model_dump(
             mode="json",
-            exclude={"mandate_hash", "evidence_refs", "explanation"},
+            exclude=_COMMIT_FIELDS | {"mandate_hash", "evidence_refs", "explanation"},
         )
     )
     if mandate is not None:
@@ -179,7 +182,7 @@ def template_explanation(receipt: DecisionReceipt) -> str:
 def _model_input(receipt: DecisionReceipt, mandate: PaymentMandate | None) -> str:
     return json.dumps(
         {
-            "receipt": receipt.model_dump(mode="json"),
+            "receipt": receipt.model_dump(mode="json", exclude=_COMMIT_FIELDS),
             "mandate": mandate.model_dump(mode="json") if mandate else None,
             "allowed_numbers": allowed_numbers(receipt, mandate),
         }
