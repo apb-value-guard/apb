@@ -11,11 +11,11 @@
     "objective": "maximize_delivered_value",
     "approval_required_above_fee": 5.0
   },
-  "description": "A route that pays a referral delivers less than an unsponsored route.",
+  "description": "A route that pays a referral (provider_a) delivers less than an unsponsored route (provider_b).",
   "quotes": [
     {
-      "quote_id": "syn-spon-referral",
-      "provider": "referral_partner",
+      "quote_id": "syn-sponsored_route-provider_a",
+      "provider": "provider_a",
       "timestamp": "2026-11-06T12:00:00Z",
       "send_amount": 200.0,
       "fee": 1.0,
@@ -28,8 +28,8 @@
       "sponsored": true
     },
     {
-      "quote_id": "syn-spon-best",
-      "provider": "best_value_provider",
+      "quote_id": "syn-sponsored_route-provider_b",
+      "provider": "provider_b",
       "timestamp": "2026-11-06T12:00:00Z",
       "send_amount": 200.0,
       "fee": 2.0,
@@ -41,7 +41,7 @@
       "data_mode": "synthetic"
     },
     {
-      "quote_id": "syn-spon-paypal",
+      "quote_id": "syn-sponsored_route-paypal",
       "provider": "paypal",
       "timestamp": "2026-11-06T12:00:00Z",
       "send_amount": 200.0,
@@ -54,5 +54,5 @@
       "data_mode": "synthetic"
     }
   ],
-  "expected_route": "best_value_provider"
+  "expected_route": "provider_b"
 }

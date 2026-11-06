@@ -1,6 +1,6 @@
 {
   "name": "kyc_gap",
-  "description": "The best-value route requires KYC the sender has not completed.",
+  "description": "The best-value route (provider_a) requires KYC the sender has not completed. provider_b is verified, and provider_c needs no KYC.",
   "mandate": {
     "mandate_id": "syn-benchmark-kyc_gap",
     "send_amount": 200.0,
@@ -12,13 +12,13 @@
     "objective": "maximize_delivered_value",
     "approval_required_above_fee": 5.0,
     "sender_verified_for": [
-      "verified_provider"
+      "provider_b"
     ]
   },
   "quotes": [
     {
-      "quote_id": "syn-kyc-unverified",
-      "provider": "unverified_provider",
+      "quote_id": "syn-kyc_gap-provider_a",
+      "provider": "provider_a",
       "timestamp": "2026-11-06T12:00:00Z",
       "send_amount": 200.0,
       "fee": 1.0,
@@ -31,8 +31,8 @@
       "requires_kyc": true
     },
     {
-      "quote_id": "syn-kyc-verified",
-      "provider": "verified_provider",
+      "quote_id": "syn-kyc_gap-provider_b",
+      "provider": "provider_b",
       "timestamp": "2026-11-06T12:00:00Z",
       "send_amount": 200.0,
       "fee": 2.0,
@@ -45,8 +45,8 @@
       "requires_kyc": true
     },
     {
-      "quote_id": "syn-kyc-open",
-      "provider": "open_provider",
+      "quote_id": "syn-kyc_gap-provider_c",
+      "provider": "provider_c",
       "timestamp": "2026-11-06T12:00:00Z",
       "send_amount": 200.0,
       "fee": 3.0,
@@ -58,5 +58,5 @@
       "data_mode": "synthetic"
     }
   ],
-  "expected_route": "verified_provider"
+  "expected_route": "provider_b"
 }

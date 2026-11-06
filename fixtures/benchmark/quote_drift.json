@@ -11,11 +11,11 @@
     "objective": "maximize_delivered_value",
     "approval_required_above_fee": 5.0
   },
-  "description": "The best quote expires and its rate worsens between decision and commit.",
+  "description": "The best quote (provider_a) expires and its rate worsens between decision and commit. provider_b stays steady.",
   "quotes": [
     {
-      "quote_id": "syn-drift-a-1",
-      "provider": "drifting_provider",
+      "quote_id": "syn-quote_drift-provider_a",
+      "provider": "provider_a",
       "timestamp": "2026-11-06T12:00:00Z",
       "send_amount": 200.0,
       "fee": 1.0,
@@ -27,8 +27,8 @@
       "data_mode": "synthetic"
     },
     {
-      "quote_id": "syn-drift-b-1",
-      "provider": "steady_provider",
+      "quote_id": "syn-quote_drift-provider_b",
+      "provider": "provider_b",
       "timestamp": "2026-11-06T12:00:00Z",
       "send_amount": 200.0,
       "fee": 2.0,
@@ -43,8 +43,8 @@
   "commit_time": "2026-11-06T12:05:00Z",
   "commit_quotes": [
     {
-      "quote_id": "syn-drift-a-2",
-      "provider": "drifting_provider",
+      "quote_id": "syn-quote_drift-provider_a-commit",
+      "provider": "provider_a",
       "timestamp": "2026-11-06T12:05:00Z",
       "send_amount": 200.0,
       "fee": 1.0,
@@ -56,8 +56,8 @@
       "data_mode": "synthetic"
     },
     {
-      "quote_id": "syn-drift-b-1",
-      "provider": "steady_provider",
+      "quote_id": "syn-quote_drift-provider_b-commit",
+      "provider": "provider_b",
       "timestamp": "2026-11-06T12:00:00Z",
       "send_amount": 200.0,
       "fee": 2.0,
@@ -69,5 +69,5 @@
       "data_mode": "synthetic"
     }
   ],
-  "expected_route": "steady_provider"
+  "expected_route": "provider_b"
 }

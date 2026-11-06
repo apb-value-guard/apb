@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+from scripts.render_readme_results import hero_lines, latest_llm_run
+
 IMG = Path(__file__).resolve().parent.parent / "docs" / "img"
 FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
 
@@ -93,13 +95,14 @@ def _wire(path: str) -> str:
     )
 
 
-def hero(theme: dict[str, str]) -> str:
+def hero(theme: dict[str, str], lines: tuple[str, str]) -> str:
+    first, second = (line.replace("'", "&apos;") for line in lines)
     svg = _open(1200, 360, "APB Value Guard", _rules(theme))
     svg += (
         '  <text class="ink" x="60" y="98" font-size="54" font-weight="700">'
         "APB Value Guard</text>\n"
-        '  <text class="muted" x="60" y="148" font-size="25">'
-        "Payment protocols prove an agent can pay. APB proves it paid well.</text>\n"
+        f'  <text class="muted" x="60" y="140" font-size="23">{first}</text>\n'
+        f'  <text class="muted" x="60" y="172" font-size="23">{second}</text>\n'
     )
     steps = [
         ("user", "Request", "What the user asked for"),
@@ -107,7 +110,7 @@ def hero(theme: dict[str, str]) -> str:
         ("code", "Score (DVS)", "What the recipient receives"),
         ("pay", "Pay or hand off", "PayPal sandbox, or logged"),
     ]
-    width, gap, top, height = 240, 40, 205, 100
+    width, gap, top, height = 240, 40, 215, 100
     for index, (kind, title, detail) in enumerate(steps):
         x = 60 + index * (width + gap)
         svg += _box(x, top, width, height, kind, title, detail)
@@ -159,9 +162,10 @@ def how_it_works() -> str:
 
 def main() -> None:
     IMG.mkdir(parents=True, exist_ok=True)
+    lines = hero_lines(latest_llm_run())
     files = {
-        "hero-light.svg": hero(LIGHT),
-        "hero-dark.svg": hero(DARK),
+        "hero-light.svg": hero(LIGHT, lines),
+        "hero-dark.svg": hero(DARK, lines),
         "how-it-works.svg": how_it_works(),
     }
     for name, svg in files.items():

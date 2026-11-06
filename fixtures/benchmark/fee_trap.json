@@ -11,11 +11,11 @@
     "objective": "maximize_delivered_value",
     "approval_required_above_fee": 5.0
   },
-  "description": "A zero-fee route with a worse FX rate delivers less than a route with a fee.",
+  "description": "A zero-fee route with a worse FX rate (provider_a) delivers less than a route with a fee (provider_b). provider_c is a premium route.",
   "quotes": [
     {
-      "quote_id": "syn-fee-zero",
-      "provider": "zero_fee_provider",
+      "quote_id": "syn-fee_trap-provider_a",
+      "provider": "provider_a",
       "timestamp": "2026-11-06T12:00:00Z",
       "send_amount": 200.0,
       "fee": 0.0,
@@ -27,8 +27,8 @@
       "data_mode": "synthetic"
     },
     {
-      "quote_id": "syn-fee-fair",
-      "provider": "fair_rate_provider",
+      "quote_id": "syn-fee_trap-provider_b",
+      "provider": "provider_b",
       "timestamp": "2026-11-06T12:00:00Z",
       "send_amount": 200.0,
       "fee": 3.5,
@@ -40,8 +40,8 @@
       "data_mode": "synthetic"
     },
     {
-      "quote_id": "syn-fee-premium",
-      "provider": "premium_provider",
+      "quote_id": "syn-fee_trap-provider_c",
+      "provider": "provider_c",
       "timestamp": "2026-11-06T12:00:00Z",
       "send_amount": 200.0,
       "fee": 5.0,
@@ -53,5 +53,5 @@
       "data_mode": "synthetic"
     }
   ],
-  "expected_route": "fair_rate_provider"
+  "expected_route": "provider_b"
 }

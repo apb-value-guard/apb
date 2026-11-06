@@ -11,11 +11,11 @@
     "objective": "maximize_delivered_value",
     "approval_required_above_fee": 5.0
   },
-  "description": "The highest-value route misses the deadline.",
+  "description": "The highest-value route (provider_a) misses the deadline. provider_b is the best route that meets it.",
   "quotes": [
     {
-      "quote_id": "syn-conflict-slow",
-      "provider": "slow_provider",
+      "quote_id": "syn-mandate_conflict-provider_a",
+      "provider": "provider_a",
       "timestamp": "2026-11-06T12:00:00Z",
       "send_amount": 200.0,
       "fee": 0.5,
@@ -27,8 +27,8 @@
       "data_mode": "synthetic"
     },
     {
-      "quote_id": "syn-conflict-fast",
-      "provider": "fast_provider",
+      "quote_id": "syn-mandate_conflict-provider_b",
+      "provider": "provider_b",
       "timestamp": "2026-11-06T12:00:00Z",
       "send_amount": 200.0,
       "fee": 2.0,
@@ -40,8 +40,8 @@
       "data_mode": "synthetic"
     },
     {
-      "quote_id": "syn-conflict-mid",
-      "provider": "mid_provider",
+      "quote_id": "syn-mandate_conflict-provider_c",
+      "provider": "provider_c",
       "timestamp": "2026-11-06T12:00:00Z",
       "send_amount": 200.0,
       "fee": 1.5,
@@ -53,5 +53,5 @@
       "data_mode": "synthetic"
     }
   ],
-  "expected_route": "fast_provider"
+  "expected_route": "provider_b"
 }

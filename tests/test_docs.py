@@ -12,7 +12,8 @@ RERUN = "out of date: rerun the render scripts in scripts/"
 
 def test_benchmark_svg_matches_the_results():
     current = (ROOT / "docs" / "img" / "benchmark.svg").read_text("utf-8")
-    assert current == render_benchmark_svg.render(RESULTS), RERUN
+    expected = render_benchmark_svg.render(RESULTS, render_readme_results.latest_llm_run())
+    assert current == expected, RERUN
 
 
 def test_benchmark_svg_shows_each_agent():
@@ -36,6 +37,21 @@ def test_readme_results_match_the_results():
     assert README == render_readme_results.updated_readme(README, RESULTS), RERUN
 
 
+def test_readme_comparison_matches_the_results():
+    run = render_readme_results.latest_llm_run()
+    assert README == render_readme_results.updated_compare_section(README, RESULTS, run), RERUN
+
+
+def test_chart_and_comparison_show_three_agents_in_order():
+    run = render_readme_results.latest_llm_run()
+
+    svg = render_benchmark_svg.render(RESULTS, run)
+    table = render_readme_results.render_compare(RESULTS, run)
+    for text in (svg, table):
+        assert text.index("naive_agent") < text.index("llm_agent") < text.index("guarded_agent")
+        assert run["model"] in text and run["date"] in text
+
+
 def test_readme_table_covers_every_test_once():
     scenarios = {scenario["name"] for scenario in RESULTS["scenarios"]}
     listed = [name for name, _, _ in render_readme_results.TESTS]
@@ -47,11 +63,12 @@ def test_readme_table_covers_every_test_once():
 def test_diagrams_are_up_to_date():
     images = ROOT / "docs" / "img"
 
+    lines = render_readme_results.hero_lines(render_readme_results.latest_llm_run())
     assert (images / "hero-light.svg").read_text("utf-8") == render_diagrams.hero(
-        render_diagrams.LIGHT
+        render_diagrams.LIGHT, lines
     ), RERUN
     assert (images / "hero-dark.svg").read_text("utf-8") == render_diagrams.hero(
-        render_diagrams.DARK
+        render_diagrams.DARK, lines
     ), RERUN
     assert (images / "how-it-works.svg").read_text("utf-8") == render_diagrams.how_it_works(), RERUN
 
@@ -77,6 +94,7 @@ def test_readme_keeps_the_required_wording():
     for text in (
         "APB Value Guard checks an AI agent's payment against the user's mandate",
         "best eligible route observed within the candidate set and quote window",
+        "**Official score (deterministic).**",
         "**The sponsor doesn't win by design.**",
         "No real money moves.",
         "Recipient amounts are rounded down to whole KES.",

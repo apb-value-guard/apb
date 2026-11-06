@@ -14,20 +14,21 @@
   <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="head" d="M0 0 L10 5 L0 10 z"/></marker></defs>
   <rect class="bg" x="0.5" y="0.5" width="1199" height="359" rx="14"/>
   <text class="ink" x="60" y="98" font-size="54" font-weight="700">APB Value Guard</text>
-  <text class="muted" x="60" y="148" font-size="25">Payment protocols prove an agent can pay. APB proves it paid well.</text>
-  <rect class="user" x="60" y="205" width="240" height="100" rx="10" stroke-width="1.5"/>
-  <text class="ink" x="180.0" y="241" text-anchor="middle" font-size="19" font-weight="600">Request</text>
-  <text class="muted" x="180.0" y="265" text-anchor="middle" font-size="14">What the user asked for</text>
-  <path class="wire" d="M304 255.0 H336" stroke-width="2" marker-end="url(#arrow)"/>
-  <rect class="code" x="340" y="205" width="240" height="100" rx="10" stroke-width="1.5"/>
-  <text class="ink" x="460.0" y="241" text-anchor="middle" font-size="19" font-weight="600">Eligibility gate</text>
-  <text class="muted" x="460.0" y="265" text-anchor="middle" font-size="14">Excludes with reason codes</text>
-  <path class="wire" d="M584 255.0 H616" stroke-width="2" marker-end="url(#arrow)"/>
-  <rect class="code" x="620" y="205" width="240" height="100" rx="10" stroke-width="1.5"/>
-  <text class="ink" x="740.0" y="241" text-anchor="middle" font-size="19" font-weight="600">Score (DVS)</text>
-  <text class="muted" x="740.0" y="265" text-anchor="middle" font-size="14">What the recipient receives</text>
-  <path class="wire" d="M864 255.0 H896" stroke-width="2" marker-end="url(#arrow)"/>
-  <rect class="pay" x="900" y="205" width="240" height="100" rx="10" stroke-width="1.5"/>
-  <text class="ink" x="1020.0" y="241" text-anchor="middle" font-size="19" font-weight="600">Pay or hand off</text>
-  <text class="muted" x="1020.0" y="265" text-anchor="middle" font-size="14">PayPal sandbox, or logged</text>
+  <text class="muted" x="60" y="140" font-size="23">Good models choose well. They still can&apos;t see a quote change after they decide,</text>
+  <text class="muted" x="60" y="172" font-size="23">and they can be talked past a stop. APB puts those checks in code.</text>
+  <rect class="user" x="60" y="215" width="240" height="100" rx="10" stroke-width="1.5"/>
+  <text class="ink" x="180.0" y="251" text-anchor="middle" font-size="19" font-weight="600">Request</text>
+  <text class="muted" x="180.0" y="275" text-anchor="middle" font-size="14">What the user asked for</text>
+  <path class="wire" d="M304 265.0 H336" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect class="code" x="340" y="215" width="240" height="100" rx="10" stroke-width="1.5"/>
+  <text class="ink" x="460.0" y="251" text-anchor="middle" font-size="19" font-weight="600">Eligibility gate</text>
+  <text class="muted" x="460.0" y="275" text-anchor="middle" font-size="14">Excludes with reason codes</text>
+  <path class="wire" d="M584 265.0 H616" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect class="code" x="620" y="215" width="240" height="100" rx="10" stroke-width="1.5"/>
+  <text class="ink" x="740.0" y="251" text-anchor="middle" font-size="19" font-weight="600">Score (DVS)</text>
+  <text class="muted" x="740.0" y="275" text-anchor="middle" font-size="14">What the recipient receives</text>
+  <path class="wire" d="M864 265.0 H896" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect class="pay" x="900" y="215" width="240" height="100" rx="10" stroke-width="1.5"/>
+  <text class="ink" x="1020.0" y="251" text-anchor="middle" font-size="19" font-weight="600">Pay or hand off</text>
+  <text class="muted" x="1020.0" y="275" text-anchor="middle" font-size="14">PayPal sandbox, or logged</text>
 </svg>

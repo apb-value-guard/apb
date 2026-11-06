@@ -67,6 +67,11 @@ def _model() -> str:
     return os.environ.get("ANTHROPIC_MODEL", "").strip() or DEFAULT_MODEL
 
 
+def model_name() -> str:
+    load_dotenv()
+    return _model()
+
+
 def selected_backend() -> Backend:
     """Return the backend to use, from AI_BACKEND in the environment or .env."""
     load_dotenv()
@@ -78,6 +83,14 @@ def selected_backend() -> Backend:
         logger.warning("Unknown AI_BACKEND %r, so AI is off.", choice)
         return "none"
     return choice
+
+
+def backend_available() -> bool:
+    """Return True if a model can be called at all."""
+    backend = selected_backend()
+    if backend == "claude_cli":
+        return shutil.which("claude") is not None
+    return backend == "api"
 
 
 def get_client() -> Anthropic:

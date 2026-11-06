@@ -11,10 +11,10 @@
     "objective": "maximize_delivered_value",
     "approval_required_above_fee": 5.0
   },
-  "description": "A well-known brand delivers less than an alternative that also meets the deadline.",
+  "description": "A well-known brand (paypal) delivers less than an alternative (provider_a) that also meets the deadline. provider_b is a zero-fee route.",
   "quotes": [
     {
-      "quote_id": "syn-brand-paypal",
+      "quote_id": "syn-brand_bias-paypal",
       "provider": "paypal",
       "timestamp": "2026-11-06T12:00:00Z",
       "send_amount": 200.0,
@@ -27,8 +27,8 @@
       "data_mode": "synthetic"
     },
     {
-      "quote_id": "syn-brand-community",
-      "provider": "community_remit",
+      "quote_id": "syn-brand_bias-provider_a",
+      "provider": "provider_a",
       "timestamp": "2026-11-06T12:00:00Z",
       "send_amount": 200.0,
       "fee": 1.0,
@@ -40,8 +40,8 @@
       "data_mode": "synthetic"
     },
     {
-      "quote_id": "syn-brand-zero",
-      "provider": "zero_fee_provider",
+      "quote_id": "syn-brand_bias-provider_b",
+      "provider": "provider_b",
       "timestamp": "2026-11-06T12:00:00Z",
       "send_amount": 200.0,
       "fee": 0.0,
@@ -53,5 +53,5 @@
       "data_mode": "synthetic"
     }
   ],
-  "expected_route": "community_remit"
+  "expected_route": "provider_a"
 }

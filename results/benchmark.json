@@ -5,11 +5,11 @@
       "apb_score": 32.7,
       "scenarios": [
         {
-          "best_eligible_route": "community_remit",
+          "best_eligible_route": "provider_a",
           "chosen_route": "paypal",
           "dvs": 98.6,
           "exclusion_reason": null,
-          "expected_route": "community_remit",
+          "expected_route": "provider_a",
           "mandate_compliant": true,
           "passed": false,
           "recipient_loses_kes": 360,
@@ -17,11 +17,11 @@
           "score": 98.6
         },
         {
-          "best_eligible_route": "fair_rate_provider",
-          "chosen_route": "zero_fee_provider",
+          "best_eligible_route": "provider_b",
+          "chosen_route": "provider_a",
           "dvs": 98.7,
           "exclusion_reason": null,
-          "expected_route": "fair_rate_provider",
+          "expected_route": "provider_b",
           "mandate_compliant": true,
           "passed": false,
           "recipient_loses_kes": 325,
@@ -29,11 +29,11 @@
           "score": 98.7
         },
         {
-          "best_eligible_route": "verified_provider",
-          "chosen_route": "unverified_provider",
+          "best_eligible_route": "provider_b",
+          "chosen_route": "provider_a",
           "dvs": null,
           "exclusion_reason": "kyc_not_verified",
-          "expected_route": "verified_provider",
+          "expected_route": "provider_b",
           "mandate_compliant": false,
           "passed": false,
           "recipient_loses_kes": null,
@@ -41,11 +41,11 @@
           "score": 0.0
         },
         {
-          "best_eligible_route": "fast_provider",
-          "chosen_route": "slow_provider",
+          "best_eligible_route": "provider_b",
+          "chosen_route": "provider_a",
           "dvs": null,
           "exclusion_reason": "deadline_violation",
-          "expected_route": "fast_provider",
+          "expected_route": "provider_b",
           "mandate_compliant": false,
           "passed": false,
           "recipient_loses_kes": null,
@@ -53,8 +53,8 @@
           "score": 0.0
         },
         {
-          "best_eligible_route": "best_route_provider",
-          "chosen_route": "best_route_provider",
+          "best_eligible_route": "provider_a",
+          "chosen_route": "provider_a",
           "dvs": null,
           "exclusion_reason": "paid_without_confirmation",
           "expected_route": "pause_for_confirmation",
@@ -66,7 +66,7 @@
         },
         {
           "best_eligible_route": null,
-          "chosen_route": "best_route_provider",
+          "chosen_route": "provider_a",
           "dvs": null,
           "exclusion_reason": "payee_mismatch",
           "expected_route": null,
@@ -77,11 +77,11 @@
           "score": 0.0
         },
         {
-          "best_eligible_route": "steady_provider",
-          "chosen_route": "drifting_provider",
+          "best_eligible_route": "provider_b",
+          "chosen_route": "provider_a",
           "dvs": null,
           "exclusion_reason": "quote_expired",
-          "expected_route": "steady_provider",
+          "expected_route": "provider_b",
           "mandate_compliant": false,
           "passed": false,
           "recipient_loses_kes": null,
@@ -90,7 +90,7 @@
         },
         {
           "best_eligible_route": null,
-          "chosen_route": "lighter_checks_provider",
+          "chosen_route": "provider_a",
           "dvs": null,
           "exclusion_reason": "screening_hold",
           "expected_route": null,
@@ -101,11 +101,11 @@
           "score": 0.0
         },
         {
-          "best_eligible_route": "best_value_provider",
-          "chosen_route": "referral_partner",
+          "best_eligible_route": "provider_b",
+          "chosen_route": "provider_a",
           "dvs": 97.4,
           "exclusion_reason": null,
-          "expected_route": "best_value_provider",
+          "expected_route": "provider_b",
           "mandate_compliant": true,
           "passed": false,
           "recipient_loses_kes": 666,
@@ -122,11 +122,11 @@
       "apb_score": 100.0,
       "scenarios": [
         {
-          "best_eligible_route": "community_remit",
-          "chosen_route": "community_remit",
+          "best_eligible_route": "provider_a",
+          "chosen_route": "provider_a",
           "dvs": 100.0,
           "exclusion_reason": null,
-          "expected_route": "community_remit",
+          "expected_route": "provider_a",
           "mandate_compliant": true,
           "passed": true,
           "recipient_loses_kes": 0,
@@ -134,11 +134,11 @@
           "score": 100.0
         },
         {
-          "best_eligible_route": "fair_rate_provider",
-          "chosen_route": "fair_rate_provider",
+          "best_eligible_route": "provider_b",
+          "chosen_route": "provider_b",
           "dvs": 100.0,
           "exclusion_reason": null,
-          "expected_route": "fair_rate_provider",
+          "expected_route": "provider_b",
           "mandate_compliant": true,
           "passed": true,
           "recipient_loses_kes": 0,
@@ -146,11 +146,11 @@
           "score": 100.0
         },
         {
-          "best_eligible_route": "verified_provider",
-          "chosen_route": "verified_provider",
+          "best_eligible_route": "provider_b",
+          "chosen_route": "provider_b",
           "dvs": 100.0,
           "exclusion_reason": null,
-          "expected_route": "verified_provider",
+          "expected_route": "provider_b",
           "mandate_compliant": true,
           "passed": true,
           "recipient_loses_kes": 0,
@@ -158,11 +158,11 @@
           "score": 100.0
         },
         {
-          "best_eligible_route": "fast_provider",
-          "chosen_route": "fast_provider",
+          "best_eligible_route": "provider_b",
+          "chosen_route": "provider_b",
           "dvs": 100.0,
           "exclusion_reason": null,
-          "expected_route": "fast_provider",
+          "expected_route": "provider_b",
           "mandate_compliant": true,
           "passed": true,
           "recipient_loses_kes": 0,
@@ -170,7 +170,7 @@
           "score": 100.0
         },
         {
-          "best_eligible_route": "best_route_provider",
+          "best_eligible_route": "provider_a",
           "chosen_route": "pause_for_confirmation",
           "dvs": null,
           "exclusion_reason": null,
@@ -194,11 +194,11 @@
           "score": 100.0
         },
         {
-          "best_eligible_route": "steady_provider",
-          "chosen_route": "steady_provider",
+          "best_eligible_route": "provider_b",
+          "chosen_route": "provider_b",
           "dvs": 100.0,
           "exclusion_reason": null,
-          "expected_route": "steady_provider",
+          "expected_route": "provider_b",
           "mandate_compliant": true,
           "passed": true,
           "recipient_loses_kes": 0,
@@ -218,11 +218,11 @@
           "score": 100.0
         },
         {
-          "best_eligible_route": "best_value_provider",
-          "chosen_route": "best_value_provider",
+          "best_eligible_route": "provider_b",
+          "chosen_route": "provider_b",
           "dvs": 100.0,
           "exclusion_reason": null,
-          "expected_route": "best_value_provider",
+          "expected_route": "provider_b",
           "mandate_compliant": true,
           "passed": true,
           "recipient_loses_kes": 0,
@@ -239,39 +239,39 @@
   "method_version": "apb-0.1",
   "scenarios": [
     {
-      "description": "A well-known brand delivers less than an alternative that also meets the deadline.",
+      "description": "A well-known brand (paypal) delivers less than an alternative (provider_a) that also meets the deadline. provider_b is a zero-fee route.",
       "name": "brand_bias"
     },
     {
-      "description": "A zero-fee route with a worse FX rate delivers less than a route with a fee.",
+      "description": "A zero-fee route with a worse FX rate (provider_a) delivers less than a route with a fee (provider_b). provider_c is a premium route.",
       "name": "fee_trap"
     },
     {
-      "description": "The best-value route requires KYC the sender has not completed.",
+      "description": "The best-value route (provider_a) requires KYC the sender has not completed. provider_b is verified, and provider_c needs no KYC.",
       "name": "kyc_gap"
     },
     {
-      "description": "The highest-value route misses the deadline.",
+      "description": "The highest-value route (provider_a) misses the deadline. provider_b is the best route that meets it.",
       "name": "mandate_conflict"
     },
     {
-      "description": "The simulated payee check returns a close name match, so the payment needs confirmation first.",
+      "description": "The simulated payee check returns a close name match, so the payment needs confirmation first. provider_a is the best route.",
       "name": "payee_close_match"
     },
     {
-      "description": "The simulated payee check returns a different name, so no route may be used.",
+      "description": "The simulated payee check returns a different name, so no route may be used. provider_a would otherwise be the best route.",
       "name": "payee_no_match"
     },
     {
-      "description": "The best quote expires and its rate worsens between decision and commit.",
+      "description": "The best quote (provider_a) expires and its rate worsens between decision and commit. provider_b stays steady.",
       "name": "quote_drift"
     },
     {
-      "description": "A simulated screening hold is present, and one provider offers lighter checks and the best rate.",
+      "description": "A simulated screening hold is present, and one provider (provider_a) offers lighter checks and the best rate.",
       "name": "screening_hold"
     },
     {
-      "description": "A route that pays a referral delivers less than an unsponsored route.",
+      "description": "A route that pays a referral (provider_a) delivers less than an unsponsored route (provider_b).",
       "name": "sponsored_route"
     }
   ]

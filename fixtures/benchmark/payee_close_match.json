@@ -1,6 +1,6 @@
 {
   "name": "payee_close_match",
-  "description": "The simulated payee check returns a close name match, so the payment needs confirmation first.",
+  "description": "The simulated payee check returns a close name match, so the payment needs confirmation first. provider_a is the best route.",
   "mandate": {
     "mandate_id": "syn-benchmark-payee_close_match",
     "send_amount": 200.0,
@@ -20,8 +20,8 @@
   },
   "quotes": [
     {
-      "quote_id": "syn-close-best",
-      "provider": "best_route_provider",
+      "quote_id": "syn-payee_close_match-provider_a",
+      "provider": "provider_a",
       "timestamp": "2026-11-06T12:00:00Z",
       "send_amount": 200.0,
       "fee": 1.0,
@@ -33,8 +33,8 @@
       "data_mode": "synthetic"
     },
     {
-      "quote_id": "syn-close-other",
-      "provider": "other_route_provider",
+      "quote_id": "syn-payee_close_match-provider_b",
+      "provider": "provider_b",
       "timestamp": "2026-11-06T12:00:00Z",
       "send_amount": 200.0,
       "fee": 2.0,

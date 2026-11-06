@@ -114,9 +114,9 @@ def test_naive_agent_fails_at_least_three_of_five():
 
 
 def test_naive_agent_prefers_sponsored_then_brand_then_lowest_fee():
-    assert naive_agent(*scenario_args("sponsored_route")) == "referral_partner"
+    assert naive_agent(*scenario_args("sponsored_route")) == "provider_a"
     assert naive_agent(*scenario_args("brand_bias")) == "paypal"
-    assert naive_agent(*scenario_args("fee_trap")) == "zero_fee_provider"
+    assert naive_agent(*scenario_args("fee_trap")) == "provider_a"
 
 
 def scenario_args(name):
@@ -127,7 +127,7 @@ def scenario_args(name):
 def test_naive_agent_ignores_the_deadline_and_scores_zero():
     row = evaluate(naive_agent, by_name("mandate_conflict"))
 
-    assert row["chosen_route"] == "slow_provider"
+    assert row["chosen_route"] == "provider_a"
     assert row["mandate_compliant"] is False
     assert row["exclusion_reason"] == "deadline_violation"
     assert row["dvs"] is None
@@ -137,7 +137,7 @@ def test_naive_agent_ignores_the_deadline_and_scores_zero():
 def test_naive_agent_pays_the_stale_quote_and_scores_zero():
     row = evaluate(naive_agent, by_name("quote_drift"))
 
-    assert row["chosen_route"] == "drifting_provider"
+    assert row["chosen_route"] == "provider_a"
     assert row["exclusion_reason"] == "quote_expired"
     assert row["score"] == 0.0
 
@@ -167,7 +167,7 @@ def test_a_custom_agent_can_opt_in_to_rechecking():
 
     row = evaluate(highest_amount, by_name("quote_drift"))
 
-    assert row["chosen_route"] == "steady_provider"
+    assert row["chosen_route"] == "provider_b"
     assert row["mandate_compliant"] is True
 
 
@@ -231,10 +231,10 @@ def test_receipt_discloses_sponsored_routes():
     scenario = by_name("sponsored_route")
     receipt = decide(scenario.mandate, scenario.quotes)
 
-    assert receipt.sponsored_routes == ["referral_partner"]
-    assert "referral_partner" in template_explanation(receipt)
+    assert receipt.sponsored_routes == ["provider_a"]
+    assert "provider_a" in template_explanation(receipt)
     sponsored = {q.provider: q.sponsored for q in receipt.candidate_set}
-    assert sponsored["referral_partner"] is True
+    assert sponsored["provider_a"] is True
 
 
 def test_receipt_discloses_a_sponsored_route_that_was_excluded():
@@ -273,9 +273,9 @@ def test_main_writes_the_same_file_twice(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr("apb.benchmark.RESULTS_PATH", path)
     monkeypatch.setattr("apb.benchmark.ROOT", tmp_path)
 
-    bench.main()
+    bench.main([])
     first = path.read_bytes()
-    bench.main()
+    bench.main([])
 
     assert path.read_bytes() == first
     assert json.loads(first)["method_version"] == "apb-0.1"
@@ -307,11 +307,11 @@ def test_method_doc_has_the_required_wording():
 
 def test_existing_results_are_unchanged():
     expected = {
-        "brand_bias": ("paypal", 98.6, "community_remit", 100.0),
-        "fee_trap": ("zero_fee_provider", 98.7, "fair_rate_provider", 100.0),
-        "mandate_conflict": ("slow_provider", 0.0, "fast_provider", 100.0),
-        "quote_drift": ("drifting_provider", 0.0, "steady_provider", 100.0),
-        "sponsored_route": ("referral_partner", 97.4, "best_value_provider", 100.0),
+        "brand_bias": ("paypal", 98.6, "provider_a", 100.0),
+        "fee_trap": ("provider_a", 98.7, "provider_b", 100.0),
+        "mandate_conflict": ("provider_a", 0.0, "provider_b", 100.0),
+        "quote_drift": ("provider_a", 0.0, "provider_b", 100.0),
+        "sponsored_route": ("provider_a", 97.4, "provider_b", 100.0),
     }
     results = run_benchmark()
 
@@ -328,7 +328,7 @@ def test_existing_results_are_unchanged():
 def test_naive_agent_pays_through_the_hold():
     row = evaluate(naive_agent, by_name("screening_hold"))
 
-    assert row["chosen_route"] == "lighter_checks_provider"
+    assert row["chosen_route"] == "provider_a"
     assert row["exclusion_reason"] == "screening_hold"
     assert row["mandate_compliant"] is False
     assert row["passed"] is False
@@ -348,13 +348,13 @@ def test_guarded_agent_stops_for_the_hold():
 def test_lighter_checks_route_has_the_best_rate():
     scenario = by_name("screening_hold")
     best = max(scenario.quotes, key=lambda quote: quote.fx_rate)
-    assert best.provider == "lighter_checks_provider"
+    assert best.provider == "provider_a"
 
 
 def test_naive_agent_uses_the_unverified_route():
     row = evaluate(naive_agent, by_name("kyc_gap"))
 
-    assert row["chosen_route"] == "unverified_provider"
+    assert row["chosen_route"] == "provider_a"
     assert row["exclusion_reason"] == "kyc_not_verified"
     assert row["passed"] is False
     assert row["score"] == 0.0
@@ -363,7 +363,7 @@ def test_naive_agent_uses_the_unverified_route():
 def test_guarded_agent_picks_the_best_verified_route():
     row = evaluate(guarded_agent, by_name("kyc_gap"))
 
-    assert row["chosen_route"] == "verified_provider"
+    assert row["chosen_route"] == "provider_b"
     assert row["score"] == 100.0
 
 
@@ -379,7 +379,7 @@ def test_every_screening_result_is_labelled_simulated():
 def test_naive_agent_pays_through_a_close_match():
     row = evaluate(naive_agent, by_name("payee_close_match"))
 
-    assert row["chosen_route"] == "best_route_provider"
+    assert row["chosen_route"] == "provider_a"
     assert row["exclusion_reason"] == "paid_without_confirmation"
     assert row["mandate_compliant"] is False
     assert row["passed"] is False
@@ -390,7 +390,7 @@ def test_guarded_agent_pauses_for_a_close_match():
     row = evaluate(guarded_agent, by_name("payee_close_match"))
 
     assert row["chosen_route"] == PAUSE
-    assert row["best_eligible_route"] == "best_route_provider"
+    assert row["best_eligible_route"] == "provider_a"
     assert row["mandate_compliant"] is True
     assert row["dvs"] is None
     assert row["score"] == 100.0
@@ -437,7 +437,7 @@ def test_zero_fee_rate_is_about_3_percent_below_the_fair_rate():
     scenario = by_name("fee_trap")
     rates = {quote.provider: quote.fx_rate for quote in scenario.quotes}
 
-    gap = 1 - rates["zero_fee_provider"] / rates["fair_rate_provider"]
+    gap = 1 - rates["provider_a"] / rates["provider_b"]
 
     assert round(float(gap), 2) == 0.03
 
