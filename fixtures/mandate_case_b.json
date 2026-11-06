@@ -1,0 +1,11 @@
+{
+  "mandate_id": "syn-mandate-case-b",
+  "send_amount": 200.00,
+  "send_currency": "USD",
+  "receive_country": "KE",
+  "payout_method": "mpesa",
+  "recipient_wallet": "syn-mpesa-wallet-001",
+  "deadline_minutes": 2880,
+  "objective": "maximize_delivered_value",
+  "approval_required_above_fee": 5.00
+}

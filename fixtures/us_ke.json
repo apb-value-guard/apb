@@ -1,0 +1,41 @@
+[
+  {
+    "quote_id": "syn-zero-fee-001",
+    "provider": "zero_fee_provider",
+    "timestamp": "2026-11-06T12:00:00Z",
+    "send_amount": 200.00,
+    "fee": 0.00,
+    "fx_rate": 127.10,
+    "recipient_amount": 25420,
+    "delivery_minutes": 15,
+    "quote_expiry_seconds": 900,
+    "payout_method": "mpesa",
+    "data_mode": "synthetic"
+  },
+  {
+    "quote_id": "syn-paypal-001",
+    "provider": "paypal",
+    "timestamp": "2026-11-06T12:00:00Z",
+    "send_amount": 200.00,
+    "fee": 2.99,
+    "fx_rate": 130.50,
+    "recipient_amount": 25709,
+    "delivery_minutes": 10,
+    "quote_expiry_seconds": 900,
+    "payout_method": "mpesa",
+    "data_mode": "synthetic"
+  },
+  {
+    "quote_id": "syn-alternative-001",
+    "provider": "alternative_provider",
+    "timestamp": "2026-11-06T12:00:00Z",
+    "send_amount": 200.00,
+    "fee": 1.50,
+    "fx_rate": 129.77,
+    "recipient_amount": 25759,
+    "delivery_minutes": 1440,
+    "quote_expiry_seconds": 900,
+    "payout_method": "mpesa",
+    "data_mode": "synthetic"
+  }
+]
