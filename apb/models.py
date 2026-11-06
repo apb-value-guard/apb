@@ -91,3 +91,4 @@ class DecisionReceipt(_Model):
     execution: dict[str, Any] | None
     evidence_refs: list[str]
     explanation: str | None
+    explanation_source: Literal["ai", "template"] | None = None
