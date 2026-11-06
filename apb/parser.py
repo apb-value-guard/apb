@@ -10,10 +10,10 @@ import re
 from decimal import Decimal, InvalidOperation
 from typing import Literal
 
-import anthropic
+from anthropic import Anthropic
 from pydantic import BaseModel, ConfigDict, ValidationError
 
-from apb.ai import get_client, request_options
+from apb.ai import AIError, complete_structured
 from apb.models import PaymentMandate
 from apb.numbers import numbers_in
 
@@ -193,6 +193,9 @@ def build_result(extraction: MandateExtraction, text: str) -> ParseResult:
         "receive_country": country,
     }
     asked = {item.field: item.question for item in extraction.missing_fields}
+    if country and not extraction.receive_country:
+        # The model reports only what the text states. Code inferred this one.
+        asked.pop("receive_country", None)
     missing = [
         MissingField(field=field, question=asked.get(field) or QUESTIONS[field])
         for field, value in values.items()
@@ -211,7 +214,7 @@ def build_result(extraction: MandateExtraction, text: str) -> ParseResult:
     return ParseResult(status="ok", mandate=mandate)
 
 
-def parse_mandate(text: str, client: anthropic.Anthropic | None = None) -> ParseResult:
+def parse_mandate(text: str, client: Anthropic | None = None) -> ParseResult:
     """Parse a payment request. Returns a mandate only when nothing is unclear."""
     if not text.strip():
         return ParseResult(
@@ -222,31 +225,21 @@ def parse_mandate(text: str, client: anthropic.Anthropic | None = None) -> Parse
             ],
         )
 
-    client = client or get_client()
-    if client is None:
-        return ParseResult(
-            status="ai_unavailable",
-            message="Text parsing needs ANTHROPIC_API_KEY. Use --case a or --case b.",
-        )
-
     try:
-        response = client.beta.messages.parse(
-            **request_options(),
-            system=SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": text}],
-            output_format=MandateExtraction,
+        extraction = complete_structured(
+            SYSTEM_PROMPT, text, MandateExtraction, client=client
         )
-        extraction = response.parsed_output
-    except (anthropic.AnthropicError, ValueError) as error:
-        logger.warning("Mandate parsing failed: %s", type(error).__name__)
-        return ParseResult(
-            status="ai_unavailable", message=f"The AI call failed: {error}"
-        )
-
-    if response.stop_reason != "end_turn" or extraction is None:
+    except AIError as error:
+        logger.warning("Mandate parsing failed: %s", error)
         return ParseResult(
             status="ai_unavailable",
-            message=f"The AI gave no usable result (stop: {response.stop_reason}).",
+            message=f"Text parsing failed: {error}. Use --case a or --case b.",
+        )
+
+    if extraction is None:
+        return ParseResult(
+            status="ai_unavailable",
+            message="Text parsing needs AI, which is off. Use --case a or --case b.",
         )
 
     try:

@@ -22,22 +22,33 @@ Recipient amounts are rounded down to whole KES.
 
 ## AI is optional
 
-**You can rerun everything without an API key.** With no `ANTHROPIC_API_KEY`,
-`--case a` and `--case b` use the fixture mandates and template explanations,
-and the tests use a mocked client. Only `--text` needs a key, because it has to
-read free text. Without one it says so and exits rather than guessing.
+**You can rerun everything with no AI at all.** `--case a` and `--case b` then
+use the fixture mandates and template explanations, and the tests are mocked.
+Only `--text` needs AI, because it has to read free text. Without it, `--text`
+says so and exits rather than guessing.
 
-To use AI, copy `.env.example` to `.env` and set `ANTHROPIC_API_KEY`.
-`ANTHROPIC_MODEL` is optional.
+AI needs no setup if you are logged in to Claude Code. To change that, copy
+`.env.example` to `.env` and set `AI_BACKEND`:
+
+- `claude_cli` (default): runs the local `claude` command with your own login.
+  If it is missing or fails, explanations use the template.
+- `none`: turns AI off.
+- `api`: uses the Anthropic API instead. This is optional and is the only
+  backend that needs `ANTHROPIC_API_KEY`.
+
+`ANTHROPIC_MODEL` is optional. `claude_cli` runs with tools disabled and never
+passes an API key to the command, so it cannot bill one.
 
 - **Parsing** (`apb/parser.py`): the model extracts fields from the text. Code
   then converts units, enforces scope (USD or GBP to Kenya, by M-PESA or bank)
   and confirms the amount, wallet and deadline appear in the text. Anything
   missing or unclear becomes a question, and no mandate is produced.
-- **Explaining** (`apb/explain.py`): the model sees only the receipt JSON. Its
-  text is discarded in favour of the template if it contains a number that isn't
-  in the receipt, omits the selected route, or doesn't say synthetic values are
-  synthetic. `explanation_source` records which one was used.
+- **Explaining** (`apb/explain.py`): the model sees the receipt, its mandate
+  (including the wallet) and a list of allowed numbers. Its text is discarded in
+  favour of the template if it contains a number that isn't in the receipt or
+  mandate, including any derived or spelled-out number, omits the selected
+  route, or doesn't say synthetic values are synthetic. `explanation_source`
+  records which one was used.
 
 ## Run it
 

@@ -1,4 +1,4 @@
-"""Run the engine: python -m apb.demo --case a|b, or --text "..." (needs a key)."""
+"""Run the engine: python -m apb.demo --case a|b, or --text "..." (needs AI)."""
 
 import argparse
 import json
@@ -65,7 +65,7 @@ def print_report(mandate: PaymentMandate, receipt: DecisionReceipt) -> None:
 
 
 def run_mandate(mandate: PaymentMandate) -> None:
-    print_report(mandate, with_explanation(decide(mandate, load_quotes())))
+    print_report(mandate, with_explanation(decide(mandate, load_quotes()), mandate))
 
 
 def run_text(text: str) -> int:
@@ -92,6 +92,9 @@ def run_text(text: str) -> int:
         )
         return 0
 
+    print("Parsed mandate")
+    print(result.mandate.model_dump_json(indent=2))
+    print()
     run_mandate(result.mandate)
     return 0
 
