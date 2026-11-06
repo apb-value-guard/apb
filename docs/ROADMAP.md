@@ -36,8 +36,11 @@ This applies the same method to card payment orchestration. Value is what the
 merchant expects to keep:
 
 ```text
-Expected net value = amount × authorisation rate − (acquirer fee + cross-border fee + FX cost)
+Expected net value = authorisation rate × (amount − acquirer fee − cross-border fee − FX cost) − per-attempt fees
 ```
+
+Most acquiring fees are charged only on approved payments. Per-attempt fees (for
+example authorisation or scheme fees on declines) apply to every attempt.
 
 Local acquiring (issuer and acquirer in the same country) usually wins on
 authorisation rate. A cheaper international acquirer can look best on fees and
