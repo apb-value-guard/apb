@@ -29,6 +29,8 @@ TODAY = date(2026, 11, 6)
 def offline(monkeypatch):
     monkeypatch.setattr("apb.ai.load_dotenv", lambda: False)
     monkeypatch.setenv("AI_BACKEND", "none")
+    # Most tests script answers for the US→Kenya prompts only.
+    monkeypatch.setattr("apb.llm_benchmark.LLM_CORRIDORS", ("us_ke",))
 
 
 def answer(monkeypatch, decision, reason="Best for the user."):
@@ -189,7 +191,7 @@ def test_ai_failure_is_never_scored_as_a_stop(monkeypatch, capsys):
 
     results = run_llm_benchmark(1, today=TODAY)
 
-    for variant in results["variants"]:
+    for variant in results["corridors"][0]["variants"]:
         for test in variant["tests"]:
             assert test["passed"] == 0
             assert test["valid_runs"] == 0
@@ -211,7 +213,7 @@ def test_errors_are_left_out_of_the_pass_rate(monkeypatch, capsys):
 
     results = run_llm_benchmark(2, today=TODAY)
 
-    full = results["variants"][0]
+    full = results["corridors"][0]["variants"][0]
     hold = next(t for t in full["tests"] if t["scenario"] == "screening_hold")
     assert (hold["passed"], hold["valid_runs"], hold["errors"]) == (1, 1, 1)
     assert full["tests_passed_every_run"] == 0
@@ -238,7 +240,7 @@ def test_run_records_everything_needed(monkeypatch, capsys):
     assert results["runs_per_test"] == 3
     assert results["system_prompt"] == SYSTEM_PROMPT
 
-    full, vague = results["variants"]
+    full, vague = results["corridors"][0]["variants"]
     assert (full["name"], vague["name"]) == ("full_request", "vague_request")
     assert vague["request"] == VAGUE_REQUEST
     assert set(full["prompt_by_test"]) == set(SCENARIOS)
@@ -255,7 +257,7 @@ def test_pass_rate_per_test(monkeypatch, capsys):
 
     results = run_llm_benchmark(3, today=TODAY)
 
-    fee = next(t for t in results["variants"][0]["tests"] if t["scenario"] == "fee_trap")
+    fee = next(t for t in results["corridors"][0]["variants"][0]["tests"] if t["scenario"] == "fee_trap")
     assert (fee["passed"], fee["valid_runs"]) == (3, 3)
     assert choices(fee) == "provider_b x3"
     assert "3/3" in format_table(results)
@@ -379,7 +381,7 @@ def pausing():
 
 
 def follow_up_of(results, scenario, variant=0):
-    tests = results["variants"][variant]["tests"]
+    tests = results["corridors"][0]["variants"][variant]["tests"]
     return next(t for t in tests if t["scenario"] == scenario)
 
 
@@ -440,7 +442,7 @@ def test_follow_up_is_only_on_the_payee_tests(monkeypatch, capsys):
     results = run_llm_benchmark(1, today=TODAY)
 
     with_follow_up = {
-        t["scenario"] for t in results["variants"][0]["tests"] if "follow_up" in t
+        t["scenario"] for t in results["corridors"][0]["variants"][0]["tests"] if "follow_up" in t
     }
     assert with_follow_up == {"payee_no_match", "payee_close_match"}
 
@@ -507,8 +509,8 @@ def test_never_paying_uses_the_firm_line_and_says_what_happened(monkeypatch, cap
 
 def test_one_paid_run_is_enough_for_the_talked_past_line(monkeypatch, capsys):
     run = run_with(monkeypatch, "STOP")
-    follow = run["variants"][1]["tests"][5]["follow_up"]
-    assert run["variants"][1]["tests"][5]["scenario"] == "payee_no_match"
+    follow = run["corridors"][0]["variants"][1]["tests"][5]["follow_up"]
+    assert run["corridors"][0]["variants"][1]["tests"][5]["scenario"] == "payee_no_match"
     follow["pay"], follow["stop"] = 1, 2
 
     assert readme.hero_lines(run)[1] == readme.LINE_END_PAID
@@ -543,12 +545,12 @@ def test_vague_variant_marks_mandate_conflict_not_applicable(monkeypatch, capsys
 
     results = run_llm_benchmark(1, today=TODAY)
 
-    vague = results["variants"][1]
+    vague = results["corridors"][0]["variants"][1]
     test = next(t for t in vague["tests"] if t["scenario"] == "mandate_conflict")
     assert test["not_applicable"] == "n/a — no deadline given"
     assert test["runs"] == []
     assert vague["tests_total"] == 8
-    assert results["variants"][0]["tests_total"] == 9
+    assert results["corridors"][0]["variants"][0]["tests_total"] == 9
 
 
 def test_not_applicable_test_is_never_sent_to_the_model(monkeypatch, capsys):
@@ -570,7 +572,7 @@ def test_not_applicable_test_is_never_sent_to_the_model(monkeypatch, capsys):
 def test_mean_is_over_the_eight_applicable_tests(monkeypatch, capsys):
     scripted(monkeypatch, perfect())
 
-    vague = run_llm_benchmark(1, today=TODAY)["variants"][1]
+    vague = run_llm_benchmark(1, today=TODAY)["corridors"][0]["variants"][1]
 
     assert vague["mean_observed_score"] == 100.0
 
@@ -677,3 +679,132 @@ def test_quote_ids_do_not_describe_the_route():
         for quote in scenario.quotes:
             for word in ("lighter", "zero", "best", "referral", "unverified", "slow"):
                 assert word not in quote.quote_id
+
+
+# Every corridor
+
+
+from apb.benchmark import CORRIDORS as BENCHMARK_CORRIDORS  # noqa: E402
+from apb.llm_benchmark import VAGUE_REQUESTS, variants_for  # noqa: E402
+
+ALL_SCENARIOS = {
+    (corridor.code, scenario.name): scenario
+    for corridor in BENCHMARK_CORRIDORS
+    for scenario in load_scenarios(corridor.code)
+}
+
+
+def answer_everywhere(monkeypatch, follow="provider_a"):
+    """Give the expected first answer in every corridor, then `follow` after a reply."""
+
+    def complete(system, user, output_type):
+        if FOLLOW_UP_REPLY in user:
+            return LlmDecision(decision=follow, reason="After the reply.")
+        for (corridor, name), scenario in ALL_SCENARIOS.items():
+            for request in variants_for(corridor).values():
+                if user == build_prompt(scenario.mandate, scenario.quotes, request):
+                    expected = scenario.expected_route
+                    decision = {None: "STOP", PAUSE: "PAUSE"}.get(expected, expected)
+                    if name == "payee_no_match":
+                        decision = "PAUSE"
+                    return LlmDecision(decision=decision, reason="Because.")
+        raise AssertionError("unknown prompt")
+
+    monkeypatch.setattr("apb.llm_agent.complete_structured", complete)
+    monkeypatch.setattr("apb.llm_benchmark.LLM_CORRIDORS", ("us_mx", "us_in", "us_ke"))
+
+
+def test_runs_every_corridor_by_default(monkeypatch, capsys):
+    answer_everywhere(monkeypatch)
+
+    results = run_llm_benchmark(1, today=TODAY)
+
+    assert [block["corridor"] for block in results["corridors"]] == ["us_mx", "us_in", "us_ke"]
+    for block in results["corridors"]:
+        full, vague = block["variants"]
+        assert vague["request"] == VAGUE_REQUESTS[block["corridor"]]
+        assert vague["tests_total"] == 8 and full["tests_total"] == 9
+        no_match = next(t for t in full["tests"] if t["scenario"] == "payee_no_match")
+        assert no_match["follow_up"]["pay"] == 1
+
+
+def test_summary_combines_the_corridors(monkeypatch, capsys):
+    answer_everywhere(monkeypatch)
+
+    summary = run_llm_benchmark(1, today=TODAY)["summary"]
+
+    assert summary["full_request"]["tests_total"] == 27
+    assert summary["vague_request"]["tests_total"] == 24
+    assert summary["full_request"]["tests_passed_every_run"] == 24
+
+
+def test_vague_requests_fit_each_corridor():
+    assert "M-PESA" in VAGUE_REQUESTS["us_ke"]
+    assert "CLABE" in VAGUE_REQUESTS["us_mx"]
+    assert "UPI" in VAGUE_REQUESTS["us_in"]
+    assert VAGUE_REQUESTS["us_ke"] == VAGUE_REQUEST
+
+
+def test_readme_and_line_count_every_corridor(monkeypatch, capsys):
+    answer_everywhere(monkeypatch)
+    run = run_llm_benchmark(1, today=TODAY)
+
+    text = readme.render_llm(run)
+    for label in ("US→Mexico", "US→India", "US→Kenya"):
+        assert label in text
+    line = readme.observed_line(run)
+    assert "3 corridors" in line
+    assert "paid after user confirmation in 6 of 6 runs" in line
+    assert "US→Mexico 2 of 2" in line
+    assert readme.hero_lines(run)[1] == readme.LINE_END_PAID
+    assert "3 corridors" in readme.render_compare(json.loads((bench.RESULTS_PATH).read_text("utf-8")), run)
+
+
+def test_table_has_a_block_per_corridor(monkeypatch, capsys):
+    answer_everywhere(monkeypatch)
+
+    table = format_table(run_llm_benchmark(1, today=TODAY))
+
+    for label in ("US→Mexico (MXN)", "US→India (INR)", "US→Kenya (KES)", "Across corridors"):
+        assert label in table
+
+
+def test_older_single_corridor_runs_still_render():
+    old = {
+        "model": "m",
+        "date": "2026-11-06",
+        "backend": "claude_cli",
+        "runs_per_test": 1,
+        "follow_up_reply": FOLLOW_UP_REPLY,
+        "variants": [
+            {"tests": [], "mean_observed_score": 50.0, "tests_passed_every_run": 1,
+             "tests_total": 9, "mean_kes_lost_per_run": 0},
+            {"tests": [], "mean_observed_score": 50.0, "tests_passed_every_run": 1,
+             "tests_total": 8, "mean_kes_lost_per_run": 0},
+        ],
+    }
+
+    blocks = readme.corridor_blocks(old)
+
+    assert [block["label"] for block in blocks] == ["US→Kenya"]
+    assert readme.llm_summary(old)["tests_total"] == 9
+
+
+def test_a_mostly_failed_run_is_not_saved(monkeypatch, capsys, tmp_path):
+    monkeypatch.setenv("AI_BACKEND", "claude_cli")
+    monkeypatch.setattr("apb.ai.shutil.which", lambda name: "claude")
+    monkeypatch.setattr("apb.llm_benchmark.RUNS_DIR", tmp_path)
+    calls = []
+
+    def complete(system, user, output_type):
+        calls.append(user)
+        if len(calls) % 3:
+            raise AIError("usage limit reached")
+        return LlmDecision(decision="STOP", reason="Because.")
+
+    monkeypatch.setattr("apb.llm_agent.complete_structured", complete)
+
+    bench.main(["--llm", "--runs", "1"])
+
+    assert list(tmp_path.iterdir()) == []
+    assert "no run was saved" in capsys.readouterr().out

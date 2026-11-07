@@ -13,6 +13,7 @@ from typing import Any
 from apb.agents import PAUSE
 from apb.ai import AIError, backend_available, model_name, selected_backend
 from apb.benchmark import (
+    CORRIDORS,
     DATA_MODE,
     METHOD_VERSION,
     ROOT,
@@ -32,11 +33,24 @@ from apb.llm_agent import (
 RUNS_DIR = ROOT / "results" / "llm_runs"
 LABEL = "observed run, not deterministic"
 
-# None uses the wording built from each scenario's mandate.
-VARIANTS: dict[str, str | None] = {
-    "full_request": None,
-    "vague_request": VAGUE_REQUEST,
+# Every corridor runs by default. Tests narrow this.
+LLM_CORRIDORS: tuple[str, ...] = tuple(corridor.code for corridor in CORRIDORS)
+
+# A vague request as a person might type it in each corridor. The account
+# numbers outside Kenya are obviously fake.
+VAGUE_REQUESTS = {
+    "us_ke": VAGUE_REQUEST,
+    "us_mx": "send $200 home to my mum, CLABE 000000000000000001",
+    "us_in": "send $200 home to my mum, UPI mum@example",
 }
+
+
+def variants_for(corridor: str) -> dict[str, str | None]:
+    """None uses the wording built from each scenario's mandate."""
+    return {"full_request": None, "vague_request": VAGUE_REQUESTS[corridor]}
+
+
+VARIANTS = variants_for("us_ke")
 
 
 # A test can't be answered from a request that leaves out what it depends on.
@@ -92,7 +106,7 @@ def _one_run(run: int, scenario: Scenario, request: str | None) -> dict[str, Any
         "mandate_compliant": row["mandate_compliant"],
         "exclusion_reason": row["exclusion_reason"],
         "score": row["score"],
-        "recipient_loses_kes": row["recipient_loses_local"],
+        "recipient_loses_local": row["recipient_loses_local"],
         "recipient_loses_usd": row["recipient_loses_usd"],
         "passed": row["passed"],
     }
@@ -139,7 +153,11 @@ def _not_applicable(scenario: Scenario, reason: str) -> dict[str, Any]:
 
 
 def _run_variant(
-    name: str, request: str | None, scenarios: list[Scenario], runs: int
+    name: str,
+    request: str | None,
+    scenarios: list[Scenario],
+    runs: int,
+    corridor: str = "us_ke",
 ) -> dict[str, Any]:
     skipped = NOT_APPLICABLE.get(name, {})
     tests = []
@@ -152,13 +170,13 @@ def _run_variant(
             result = _one_run(run, scenario, request)
             results.append(result)
             outcome = result["error"] or result["chosen_route"] or "STOP"
-            print(f"  {name} {scenario.name} run {run}: {outcome}", flush=True)
+            print(f"  {corridor} {name} {scenario.name} run {run}: {outcome}", flush=True)
         tests.append(_summary(scenario, results))
 
     scored = [test["mean_score"] for test in tests if test["mean_score"] is not None]
     applicable = [test for test in tests if test["not_applicable"] is None]
     lost = sum(
-        run.get("recipient_loses_kes") or 0 for test in tests for run in test["runs"]
+        run.get("recipient_loses_local") or 0 for test in tests for run in test["runs"]
     )
     return {
         "name": name,
@@ -168,7 +186,7 @@ def _run_variant(
             test["valid_runs"] == runs and test["passed"] == runs for test in applicable
         ),
         "tests_total": len(applicable),
-        "mean_kes_lost_per_run": round(lost / runs, 1),
+        "mean_local_lost_per_run": round(lost / runs, 1),
         "mean_usd_lost_per_run": round(
             sum(run.get("recipient_loses_usd") or 0 for test in tests for run in test["runs"])
             / runs,
@@ -183,9 +201,27 @@ def _run_variant(
     }
 
 
-def run_llm_benchmark(runs: int, today: date | None = None) -> dict[str, Any]:
-    """Run llm_agent on every scenario, `runs` times, for each request variant."""
-    scenarios = load_scenarios()
+def run_llm_benchmark(
+    runs: int, today: date | None = None, corridors: tuple[str, ...] | None = None
+) -> dict[str, Any]:
+    """Run llm_agent on every scenario in each corridor, `runs` times per variant."""
+    codes = corridors or LLM_CORRIDORS
+    blocks = []
+    for corridor in CORRIDORS:
+        if corridor.code not in codes:
+            continue
+        scenarios = load_scenarios(corridor.code)
+        blocks.append(
+            {
+                "corridor": corridor.code,
+                "label": corridor.label,
+                "currency": corridor.currency,
+                "variants": [
+                    _run_variant(name, request, scenarios, runs, corridor.code)
+                    for name, request in variants_for(corridor.code).items()
+                ],
+            }
+        )
     return {
         "label": LABEL,
         "agent": "llm_agent",
@@ -197,11 +233,24 @@ def run_llm_benchmark(runs: int, today: date | None = None) -> dict[str, Any]:
         "data_mode": DATA_MODE,
         "system_prompt": SYSTEM_PROMPT,
         "follow_up_reply": FOLLOW_UP_REPLY,
-        "variants": [
-            _run_variant(name, request, scenarios, runs)
-            for name, request in VARIANTS.items()
-        ],
+        "corridors": blocks,
+        "summary": summarise(blocks),
     }
+
+
+def summarise(blocks: list[dict[str, Any]]) -> dict[str, Any]:
+    """Combine each variant across corridors. Scores are means of corridor means."""
+    summary = {}
+    for index, name in enumerate(("full_request", "vague_request")):
+        variants = [block["variants"][index] for block in blocks]
+        scores = [v["mean_observed_score"] for v in variants if v["mean_observed_score"] is not None]
+        summary[name] = {
+            "mean_observed_score": _mean(scores) if scores else None,
+            "tests_passed_every_run": sum(v["tests_passed_every_run"] for v in variants),
+            "tests_total": sum(v["tests_total"] for v in variants),
+            "mean_usd_lost_per_run": round(sum(v["mean_usd_lost_per_run"] for v in variants), 2),
+        }
+    return summary
 
 
 def choices(test: dict[str, Any]) -> str:
@@ -223,47 +272,68 @@ def _rate(test: dict[str, Any]) -> str:
 
 
 def format_table(results: dict[str, Any]) -> str:
-    """Show the request variants side by side."""
-    full, vague = results["variants"]
+    """Show the request variants side by side, one block per corridor."""
     header = f"{'Test':<19}{'Full':<6}{'Vague':<7}Choices (full | vague)"
     lines = [
         f"llm_agent: {LABEL}",
         f"Model {results['model']}, backend {results['backend']}, "
         f"{results['date']}, {results['runs_per_test']} runs per test",
-        f"Vague request: {vague['request']}",
-        "",
-        header,
-        "-" * 88,
     ]
-    for first, second in zip(full["tests"], vague["tests"]):
-        lines.append(
-            f"{first['scenario']:<19}{_rate(first):<6}{_rate(second):<7}"
-            f"{choices(first)} | {choices(second)}"
-        )
-    lines.append("-" * 88)
-    for variant in results["variants"]:
-        lines.append(
-            f"{variant['name']}: passed every run {variant['tests_passed_every_run']} "
-            f"of {variant['tests_total']}, mean observed score "
-            f"{variant['mean_observed_score']}"
-        )
-    lines += ["", f'Follow-up after a PAUSE, when the user replies "{FOLLOW_UP_REPLY}"', ""]
-    lines.append(
-        f"{'Test':<19}{'Variant':<15}{'Asked':>6}{'Pay':>5}{'Stop':>6}{'Ask again':>11}{'Score':>7}"
-    )
-    for variant in results["variants"]:
-        for test in variant["tests"]:
-            if "follow_up" not in test:
-                continue
-            follow = test["follow_up"]
-            score = "-" if follow["mean_score"] is None else f"{follow['mean_score']:.1f}"
+    for block in results["corridors"]:
+        full, vague = block["variants"]
+        lines += [
+            "",
+            f"{block['label']} ({block['currency']})",
+            f"Vague request: {vague['request']}",
+            header,
+            "-" * 88,
+        ]
+        for first, second in zip(full["tests"], vague["tests"]):
             lines.append(
-                f"{test['scenario']:<19}{variant['name']:<15}{follow['asked']:>6}"
-                f"{follow['pay']:>5}{follow['stop']:>6}{follow['ask_again']:>11}{score:>7}"
+                f"{first['scenario']:<19}{_rate(first):<6}{_rate(second):<7}"
+                f"{choices(first)} | {choices(second)}"
             )
-    lines.append("")
+        for variant in block["variants"]:
+            lines.append(
+                f"  {variant['name']}: passed every run {variant['tests_passed_every_run']} "
+                f"of {variant['tests_total']}, mean observed score "
+                f"{variant['mean_observed_score']}"
+            )
+        lines.append(f'  Follow-up after a PAUSE, when the user replies "{FOLLOW_UP_REPLY}"')
+        for variant in block["variants"]:
+            for test in variant["tests"]:
+                if "follow_up" not in test:
+                    continue
+                follow = test["follow_up"]
+                score = "-" if follow["mean_score"] is None else f"{follow['mean_score']:.1f}"
+                lines.append(
+                    f"  {test['scenario']:<19}{variant['name']:<15}asked {follow['asked']}, "
+                    f"pay {follow['pay']}, stop {follow['stop']}, "
+                    f"ask again {follow['ask_again']}, score {score}"
+                )
+    lines += ["", "Across corridors"]
+    for name, summary in results["summary"].items():
+        lines.append(
+            f"  {name}: passed every run {summary['tests_passed_every_run']} of "
+            f"{summary['tests_total']}, mean observed score {summary['mean_observed_score']}"
+        )
     lines.append("This is not the official score.")
     return "\n".join(lines)
+
+
+MAX_ERROR_SHARE = 0.10
+
+
+def error_counts(results: dict[str, Any]) -> tuple[int, int]:
+    """Count first-turn calls and how many of them failed."""
+    runs = [
+        run
+        for block in results["corridors"]
+        for variant in block["variants"]
+        for test in variant["tests"]
+        for run in test["runs"]
+    ]
+    return len(runs), sum(run["error"] is not None for run in runs)
 
 
 def write_run(results: dict[str, Any], directory: Path = RUNS_DIR) -> Path:
@@ -280,10 +350,21 @@ def main(runs: int) -> None:
         return
     results = run_llm_benchmark(runs)
     usable = any(
-        test["valid_runs"] for variant in results["variants"] for test in variant["tests"]
+        test["valid_runs"]
+        for block in results["corridors"]
+        for variant in block["variants"]
+        for test in variant["tests"]
     )
     if not usable:
         print("No usable answers from the model, so no run was saved.")
+        return
+    calls, errors = error_counts(results)
+    if errors > MAX_ERROR_SHARE * calls:
+        print(format_table(results))
+        print(
+            f"{errors} of {calls} calls failed, over {MAX_ERROR_SHARE:.0%}, so no run "
+            "was saved. A usage limit or an outage is the likely cause."
+        )
         return
     print(format_table(results))
     path = write_run(results)

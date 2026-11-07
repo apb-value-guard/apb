@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from scripts.render_readme_results import latest_llm_run
+from scripts.render_readme_results import corridor_blocks, latest_llm_run, llm_summary
 
 ROOT = Path(__file__).resolve().parent.parent
 RESULTS = ROOT / "results" / "benchmark.json"
@@ -53,13 +53,15 @@ def _rows(results: dict[str, Any], run: dict[str, Any] | None) -> list[dict[str,
 
     rows = [deterministic("naive_agent", "shortcut agent, deterministic, all corridors")]
     if run is not None:
-        full = run["variants"][0]
+        summary = llm_summary(run)
+        blocks = corridor_blocks(run)
+        where = blocks[0]["label"] + " only" if len(blocks) == 1 else f"{len(blocks)} corridors"
         rows.append(
             {
                 "name": "llm_agent",
-                "note": f"observed: {run['model']}, {run['date']}, US→Kenya only",
-                "score": full["mean_observed_score"],
-                "passed": f"{full['tests_passed_every_run']}/{full['tests_total']}",
+                "note": f"observed: {run['model']}, {run['date']}, {where}",
+                "score": round(summary["mean_observed_score"], 1),
+                "passed": f"{summary['tests_passed_every_run']}/{summary['tests_total']}",
                 "kind": "observed",
             }
         )

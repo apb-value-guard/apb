@@ -26,11 +26,11 @@
   <text class="ink" x="736" y="98" font-size="19" font-weight="600">32.7</text>
   <text class="muted" x="972" y="98" text-anchor="end" font-size="16">tests passed 0/27</text>
   <text class="ink" x="28" y="161" font-size="17">llm_agent</text>
-  <text class="muted" x="28" y="181" font-size="13">observed: claude-sonnet-5-5, 2026-11-06, US→Kenya only</text>
+  <text class="muted" x="28" y="181" font-size="13">observed: claude-sonnet-5-5, 2026-11-07, 3 corridors</text>
   <rect class="track" x="300" y="148" width="420" height="20" rx="4"/>
   <rect class="observed" x="300" y="148" width="326.8" height="20" rx="4"><title>llm_agent: 77.8</title></rect>
   <text class="ink" x="736" y="164" font-size="19" font-weight="600">77.8</text>
-  <text class="muted" x="972" y="164" text-anchor="end" font-size="16">tests passed 7/9</text>
+  <text class="muted" x="972" y="164" text-anchor="end" font-size="16">tests passed 21/27</text>
   <text class="ink" x="28" y="227" font-size="17">guarded_agent</text>
   <text class="muted" x="28" y="247" font-size="13">deterministic, all corridors</text>
   <rect class="track" x="300" y="214" width="420" height="20" rx="4"/>
