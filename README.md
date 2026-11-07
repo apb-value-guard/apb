@@ -15,6 +15,8 @@ APB Value Guard checks an AI agent's payment against the user's mandate, scores 
 ![Tests: passing](https://img.shields.io/badge/Tests-passing-brightgreen)
 ![Data: synthetic + sandbox](https://img.shields.io/badge/Data-synthetic_%2B_sandbox-orange)
 
+**Live demo:** _link coming soon_. The public demo uses synthetic quotes and makes no payments.
+
 ## The problem in one line
 
 <!-- problem:start -->
@@ -229,7 +231,7 @@ Recipient amounts are rounded down to whole KES.
 
 ## AI is optional
 
-**You can rerun everything with no AI at all.** `--case a` and `--case b` then use the fixture mandates and template explanations, and the tests are mocked. Only `--text` needs AI, because it has to read free text. Without it, `--text` says so and exits rather than guessing.
+**You can rerun everything with no AI at all.** `--case a` and `--case b` then use the fixture mandates and template explanations, and the tests are mocked. With AI off, `--text` and the web text box use a rule-based parser, labelled "rule-based parser, no AI". It reads an amount with its currency, "M-PESA <number>" and a deadline in minutes, hours or days. Anything it can't read clearly becomes a question, never a guess. If a configured AI fails, `--text` says so rather than switching to the rules.
 
 ```powershell
 python -m apb.demo --text "Send `$200 to M-PESA 254700000001 within 2 hours"
@@ -255,6 +257,16 @@ $env:ALLOW_EXECUTE="true"; python -m apb.web
 ```
 
 The setting lasts for that PowerShell window, and `.env` works too. Each decision then uses a fresh mandate, so executing it makes a new sandbox payout. Credentials never reach the browser, and the wallet is masked to its last 4 digits.
+
+## Deploy your own
+
+The repo includes a [Render](https://render.com) blueprint, `render.yaml`, for a free public demo:
+
+1. Fork this repository.
+2. In Render, choose **New** > **Blueprint** and select your fork. Render reads `render.yaml`.
+3. Deploy. The health check is `/healthz`.
+
+The blueprint sets `AI_BACKEND=none`, `ALLOW_EXECUTE=false` and `PUBLIC_DEMO=true`. The public demo then uses template explanations and the rule-based parser, shows a banner, and never executes, even if `ALLOW_EXECUTE` is changed. Don't add PayPal or Anthropic keys to it. Free Render services sleep when idle, so the first visit can be slow.
 
 ## Roadmap
 

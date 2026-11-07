@@ -56,6 +56,7 @@ def offline(monkeypatch):
     monkeypatch.setattr("apb.ai.load_dotenv", lambda: False)
     monkeypatch.setenv("AI_BACKEND", "none")
     monkeypatch.delenv("ALLOW_EXECUTE", raising=False)
+    monkeypatch.delenv("PUBLIC_DEMO", raising=False)
     monkeypatch.setenv("PAYPAL_CLIENT_ID", CLIENT_ID)
     monkeypatch.setenv("PAYPAL_CLIENT_SECRET", SECRET)
     monkeypatch.setenv("PAYPAL_SANDBOX_RECEIVER", RECEIVER)
@@ -234,9 +235,11 @@ def test_decide_text_returns_questions(client, monkeypatch):
     assert "receipt" not in data
 
 
-def test_decide_text_with_ai_off_says_so(client):
+def test_decide_text_with_ai_off_asks_what_the_rules_cannot_read(client):
     data = client.post("/api/decide", json={"text": "Send $200"}).json()
-    assert data["status"] == "ai_unavailable"
+
+    assert data["status"] == "missing_fields"
+    assert "receipt" not in data
 
 
 def test_gbp_is_not_decided_on_usd_fixtures(client, monkeypatch):
@@ -281,12 +284,15 @@ def test_execute_refuses_unless_allow_execute_is_true(client, http, monkeypatch,
 
 
 def test_config_reports_execute_off_by_default(client):
-    assert client.get("/api/config").json() == {"allow_execute": False}
+    assert client.get("/api/config").json() == {
+        "allow_execute": False,
+        "public_demo": False,
+    }
 
 
 def test_config_reports_execute_on(client, monkeypatch):
     monkeypatch.setenv("ALLOW_EXECUTE", "true")
-    assert client.get("/api/config").json() == {"allow_execute": True}
+    assert client.get("/api/config").json()["allow_execute"] is True
 
 
 def test_execute_uses_fresh_mandate_and_shows_the_batch(client, http, monkeypatch):

@@ -35,14 +35,22 @@ RECEIVE_CURRENCIES = {"KE": "KES"}
 STATIC = Path(__file__).resolve().parent / "static"
 METHOD_PATH = ROOT / "docs" / "METHOD.md"
 
+def public_demo() -> bool:
+    """True on the public deploy, which never executes and shows a banner."""
+    load_dotenv()
+    return os.environ.get("PUBLIC_DEMO", "").strip().lower() == "true"
+
+
 app = FastAPI(
     title="APB Value Guard, built on PayPal",
     docs_url=None,
     redoc_url=None,
     openapi_url=None,
 )
-# A rebinding attack reaches localhost under a foreign Host header.
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", HOST])
+# A rebinding attack reaches the local server under a foreign Host header. The
+# public demo is reached by its own hostname and can't execute, so it skips this.
+if not public_demo():
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", HOST])
 
 # Execution uses the stored decision, so the browser can't supply a receipt.
 _decisions: OrderedDict[str, tuple[PaymentMandate, DecisionReceipt]] = OrderedDict()
@@ -64,6 +72,8 @@ class ExecuteRequest(BaseModel):
 
 def execute_allowed() -> bool:
     load_dotenv()
+    if public_demo():
+        return False
     return os.environ.get("ALLOW_EXECUTE", "").strip().lower() == "true"
 
 
@@ -81,7 +91,7 @@ def mask_wallet(wallet: str) -> str:
 
 
 def _request_view(
-    mandate: PaymentMandate, source: Literal["ai", "fixture"]
+    mandate: PaymentMandate, source: Literal["ai", "rules", "fixture"]
 ) -> dict[str, Any]:
     return {
         "source": source,
@@ -94,7 +104,7 @@ def _request_view(
 
 
 def _decision_response(
-    mandate: PaymentMandate, source: Literal["ai", "fixture"]
+    mandate: PaymentMandate, source: Literal["ai", "rules", "fixture"]
 ) -> dict[str, Any]:
     # With execution on, a decision is live: fresh mandate, current quotes.
     stamp = datetime.now(UTC) if execute_allowed() else None
@@ -122,9 +132,14 @@ def method() -> str:
     return METHOD_PATH.read_text("utf-8")
 
 
+@app.get("/healthz")
+def healthz() -> dict[str, str]:
+    return {"status": "ok"}
+
+
 @app.get("/api/config")
 def config() -> dict[str, bool]:
-    return {"allow_execute": execute_allowed()}
+    return {"allow_execute": execute_allowed(), "public_demo": public_demo()}
 
 
 @app.get("/api/benchmark")
@@ -155,7 +170,7 @@ def run_decide(request: DecideRequest) -> dict[str, Any]:
             ),
             "missing_fields": [],
         }
-    return _decision_response(result.mandate, "ai")
+    return _decision_response(result.mandate, "rules" if result.parser == "rules" else "ai")
 
 
 @app.post("/api/execute")

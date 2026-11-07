@@ -41,6 +41,10 @@
     color: var(--ink);
     font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
+  .banner {
+    background: var(--panel); border: 1px solid var(--accent); border-radius: 8px;
+    padding: 10px 14px; margin-bottom: 20px; font-weight: 600;
+  }
   .page { max-width: 960px; margin: 0 auto; padding: 32px 16px 24px; }
   h1 { font-size: 1.6rem; line-height: 1.25; margin: 0 0 4px; }
   h2 { font-size: 1.05rem; margin: 32px 0 12px; }
@@ -148,6 +152,7 @@
 </head>
 <body>
 <div class="page">
+  <div class="banner" id="public-banner" role="note" hidden>Public demo: synthetic quotes, no payments. Sandbox payouts run locally — see the video.</div>
   <header>
     <h1>APB Value Guard, built on PayPal</h1>
     <p class="lede">Picks the best eligible route observed within the candidate set and quote window, scored on what the recipient receives.</p>
@@ -235,8 +240,18 @@ function rate(sendCurrency, receiveCurrency, value) {
 let allowExecute = false;
 let decisionId = null;
 const configReady = api("/api/config")
-  .then((config) => { allowExecute = config.allow_execute; })
+  .then((config) => {
+    allowExecute = config.allow_execute;
+    byId("public-banner").hidden = !config.public_demo;
+  })
   .catch(() => {});
+
+const REQUEST_HEADINGS = {
+  ai: "AI read your request as:",
+  rules: "Rule-based parser read your request as:",
+  fixture: "Fixture request:",
+};
+const SOURCE_BADGES = { ai: "ai", rules: "rule-based parser, no AI", fixture: "fixture" };
 
 function setBusy(busy) {
   for (const id of ["run-text", "run-a", "run-b", "run-c", "run-d", "run-e"]) byId(id).disabled = busy;
@@ -293,11 +308,10 @@ function payeeRows(check) {
 }
 
 function requestPanel(request, screening, payee) {
-  const fromAi = request.source === "ai";
   return el("div", { class: "panel request-panel" },
     el("div", { class: "request-head" },
-      fromAi ? "AI read your request as:" : "Fixture request:",
-      el("span", { class: "badge" }, request.source)),
+      REQUEST_HEADINGS[request.source],
+      el("span", { class: "badge" }, SOURCE_BADGES[request.source])),
     el("dl", {},
       el("dt", {}, "Amount"), el("dd", {}, amount(request.currency, request.amount)),
       el("dt", {}, "Currency"), el("dd", {}, request.currency),

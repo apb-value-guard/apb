@@ -144,7 +144,9 @@ def run_text(
         )
         return 0
 
-    print("Parsed mandate")
+    from apb.rule_parser import LABEL
+
+    print(f"Parsed mandate ({LABEL if result.parser == 'rules' else 'AI'})")
     print(result.mandate.model_dump_json(indent=2))
     print()
     run_mandate(result.mandate, pay, approve, fresh)

@@ -273,8 +273,11 @@ def test_gbp_is_in_scope():
     assert result.mandate.send_currency == "GBP"
 
 
-def test_parse_with_ai_off_makes_no_call():
-    assert parse_mandate(MUM).status == "ai_unavailable"
+def test_parse_with_ai_off_uses_the_rule_parser():
+    result = parse_mandate(MUM)
+
+    assert result.status == "ok"
+    assert result.parser == "rules"
 
 
 def test_empty_text_asks_everything_without_a_call():
@@ -530,9 +533,9 @@ def test_demo_runs_with_ai_off(monkeypatch, capsys, case, selected):
     assert '"explanation_source": "template"' in output
 
 
-def test_text_with_ai_off_explains_itself(monkeypatch, capsys):
-    assert run_demo(monkeypatch, "--text", MUM) == 2
-    assert "Use --case a or --case b" in capsys.readouterr().out
+def test_text_with_ai_off_uses_the_rule_parser(monkeypatch, capsys):
+    assert run_demo(monkeypatch, "--text", MUM) == 0
+    assert "rule-based parser, no AI" in capsys.readouterr().out
 
 
 def test_text_runs_the_engine(monkeypatch, capsys):

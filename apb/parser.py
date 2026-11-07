@@ -102,6 +102,7 @@ class MandateExtraction(_Model):
 
 class ParseResult(_Model):
     status: Literal["ok", "missing_fields", "out_of_scope", "ai_unavailable"]
+    parser: Literal["ai", "rules"] | None = None
     mandate: PaymentMandate | None = None
     missing_fields: list[MissingField] = []
     message: str | None = None
@@ -237,13 +238,14 @@ def parse_mandate(text: str, client: Anthropic | None = None) -> ParseResult:
         )
 
     if extraction is None:
-        return ParseResult(
-            status="ai_unavailable",
-            message="Text parsing needs AI, which is off. Use --case a or --case b.",
-        )
+        # AI is off, so read the text with fixed rules instead. Imported here
+        # because the rule parser builds on this module.
+        from apb.rule_parser import parse_with_rules
+
+        return parse_with_rules(text)
 
     try:
-        return build_result(extraction, text)
+        return build_result(extraction, text).model_copy(update={"parser": "ai"})
     except ValidationError:
         return ParseResult(
             status="missing_fields",
