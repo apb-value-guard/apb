@@ -18,3 +18,7 @@ services:
       # changes. Never add PayPal or Anthropic keys to this service.
       - key: PUBLIC_DEMO
         value: "true"
+      # A random key Render creates once, so wallet references stay the same
+      # across restarts. It isn't written anywhere in this repository.
+      - key: APB_WALLET_KEY
+        generateValue: true

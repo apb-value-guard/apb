@@ -51,7 +51,8 @@ class ScreeningResult(_Model):
 
     status: Literal["clear", "hold"]
     list: Literal["sanctions", "pep", "aml"] | None = None
-    source: Literal["simulated"]
+    # "caller_supplied" is a result an API caller got from its own provider.
+    source: Literal["simulated", "caller_supplied"]
 
 
 class PayeeCheck(_Model):
@@ -60,7 +61,7 @@ class PayeeCheck(_Model):
     result: Literal["match", "close_match", "no_match"]
     expected_name: str
     returned_name: str
-    source: Literal["simulated"]
+    source: Literal["simulated", "caller_supplied"]
 
 
 class PaymentMandate(_Model):
@@ -119,9 +120,10 @@ class DecisionReceipt(_Model):
     disclosure_passed: bool
     quote_rechecked_at_commit: bool
     user_approved: bool
-    execution: dict[str, Any] | None
+    # Defaults let a receipt come back from a client that drops null values.
+    execution: dict[str, Any] | None = None
     evidence_refs: list[str]
-    explanation: str | None
+    explanation: str | None = None
     explanation_source: Literal["ai", "template"] | None = None
     sponsored_routes: list[str] = []
     screening_result: ScreeningResult | None = None

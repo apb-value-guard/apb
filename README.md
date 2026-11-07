@@ -258,6 +258,45 @@ $env:ALLOW_EXECUTE="true"; python -m apb.web
 
 The setting lasts for that PowerShell window, and `.env` works too. Each decision then uses a fresh mandate, so executing it makes a new sandbox payout. Credentials never reach the browser, and the wallet is masked to its last 4 digits.
 
+## Check API
+
+A deterministic API for an agent about to pay. Send the mandate and every quote, and APB says `pay`, `pause` or `stop`, with reason codes and a receipt. No AI runs in this path, nothing is stored, and nothing executes. **Decision support only. APB never moves money.**
+
+| Endpoint | What it does |
+|---|---|
+| `POST /v1/check` | Gates and scores the quotes and returns the decision and receipt |
+| `POST /v1/recheck` | Just before paying, checks the earlier route against fresh quotes: `ok`, or `re-decide` with the reason and a new decision |
+| `GET /v1/reason-codes` | Every reason code, its scope (`route` or `all`) and meaning |
+
+Interactive docs with worked examples are at [`/docs`](https://apb-value-guard.onrender.com/docs).
+
+```bash
+curl -s https://apb-value-guard.onrender.com/v1/reason-codes
+```
+
+- **Context.** Add `screening_result`, `payee_check` and `sender_verified_for` from your own providers, with `source: "caller_supplied"`. APB uses them and verifies none of them. `user_confirmed_payee` lets a close match proceed, and `user_approved_fee` approves a fee above the limit. A `no_match` always stops.
+- **Recheck needs the mandate.** The receipt holds only `mandate_hash`, so send the same mandate and context, which are checked against it.
+- **Wallets.** Responses carry `recipient_wallet_ref`, a keyed hash, never the number. Validation errors don't echo submitted values.
+- **Limits.** 60 requests a minute per address, and bodies up to 64 KB.
+
+## Use APB from an agent
+
+`apb/mcp_server.py` is a stdio MCP server with two tools, `apb_check` and `apb_recheck`. They call the same functions as the API, so an agent can check before paying. Add it to your MCP client config, for example `.mcp.json` in a Claude Code project:
+
+```json
+{
+  "mcpServers": {
+    "apb": {
+      "command": "/path/to/apb/.venv/bin/python",
+      "args": ["-m", "apb.mcp_server"],
+      "env": { "PYTHONPATH": "/path/to/apb" }
+    }
+  }
+}
+```
+
+On Windows, point `command` at `.venv\Scripts\python.exe` and write each backslash twice in the JSON. The server tells the agent to pay only on `pay`, to ask the user on `pause`, and never to pay on `stop`.
+
 ## Deploy your own
 
 The repo includes a [Render](https://render.com) blueprint, `render.yaml`, for a free public demo:

@@ -128,9 +128,11 @@ def test_benchmark_endpoint(client):
     ]
 
 
-def test_generated_api_docs_are_off(client):
-    assert client.get("/docs").status_code == 404
-    assert client.get("/openapi.json").status_code == 404
+def test_api_docs_cover_only_the_check_api(client):
+    assert client.get("/docs").status_code == 200
+    paths = set(client.get("/openapi.json").json()["paths"])
+
+    assert paths == {"/v1/check", "/v1/recheck", "/v1/reason-codes"}
 
 
 def test_foreign_host_is_refused():
