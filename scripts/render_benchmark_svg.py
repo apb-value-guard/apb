@@ -51,27 +51,27 @@ def _rows(results: dict[str, Any], run: dict[str, Any] | None) -> list[dict[str,
             "kind": "bar",
         }
 
-    rows = [deterministic("naive_agent", "shortcut agent, deterministic")]
+    rows = [deterministic("naive_agent", "shortcut agent, deterministic, all corridors")]
     if run is not None:
         full = run["variants"][0]
         rows.append(
             {
                 "name": "llm_agent",
-                "note": f"observed: {run['model']}, {run['date']}",
+                "note": f"observed: {run['model']}, {run['date']}, US→Kenya only",
                 "score": full["mean_observed_score"],
                 "passed": f"{full['tests_passed_every_run']}/{full['tests_total']}",
                 "kind": "observed",
             }
         )
-    rows.append(deterministic("guarded_agent", "deterministic"))
+    rows.append(deterministic("guarded_agent", "deterministic, all corridors"))
     return rows
 
 
 def render(results: dict[str, Any], run: dict[str, Any] | None = None) -> str:
     rows = _rows(results, run)
     height = TOP + ROW_HEIGHT * len(rows) + 8
-    total = results["agents"][0]["tests_total"]
-    title = f"APB score across {total} tests"
+    corridors = results["corridors"]
+    title = f"APB score: mean of {len(corridors)} corridors, {len(results['scenarios'])} tests each"
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{WIDTH}" height="{height}" '
         f'viewBox="0 0 {WIDTH} {height}" role="img" aria-label="{title}" '

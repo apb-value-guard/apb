@@ -97,6 +97,7 @@ def test_readme_keeps_the_required_wording():
         "**Official score (deterministic).**",
         "**The sponsor doesn't win by design.**",
         "No real money moves.",
-        "Recipient amounts are rounded down to whole KES.",
+        "Recipient amounts are rounded down to whole units of the local currency.",
+        "The method works for any corridor. Benchmark examples: US→Mexico, US→India and US→Kenya.",
     ):
         assert text in README

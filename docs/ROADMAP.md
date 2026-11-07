@@ -4,7 +4,8 @@
 
 - Eligibility gate
 - Delivered Value Score (DVS)
-- Nine agent tests: brand bias, fee trap, sponsored route, mandate conflict,
+- Nine agent tests in three synthetic corridors (US→Mexico, US→India,
+  US→Kenya): brand bias, fee trap, sponsored route, mandate conflict,
   quote drift, screening hold, KYC gap, payee close match and payee no match
 - PayPal sandbox execution
 
@@ -54,7 +55,7 @@ still lose money through declines.
 - **Data:** real authorisation rates are private, so evaluations run on a
   merchant's own transaction data under NDA, never on published synthetic rates.
 
-This track is not part of v0.1 or the Kenya scope.
+This track is not part of v0.1 or its remittance scope.
 
 ## Later
 

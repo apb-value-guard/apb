@@ -1,5 +1,7 @@
 import json
 import math
+import re
+from decimal import ROUND_HALF_UP, Decimal
 
 import pytest
 
@@ -12,7 +14,15 @@ from apb.agents import (
     naive_agent,
     rechecks_quotes,
 )
-from apb.benchmark import evaluate, format_table, load_scenarios, run_benchmark, to_json
+from apb.benchmark import (
+    CORRIDORS,
+    _mean,
+    evaluate,
+    format_table,
+    load_scenarios,
+    run_benchmark,
+    to_json,
+)
 from apb.decide import decide
 from apb.demo import load_mandate, load_quotes
 from apb.explain import template_explanation
@@ -25,8 +35,9 @@ def by_name(name):
     return next(scenario for scenario in SCENARIOS if scenario.name == name)
 
 
-def row_for(results, agent, scenario):
-    agent_result = next(a for a in results["agents"] if a["agent"] == agent)
+def row_for(results, agent, scenario, corridor="us_ke"):
+    block = next(c for c in results["corridors"] if c["corridor"] == corridor)
+    agent_result = next(a for a in block["agents"] if a["agent"] == agent)
     return next(r for r in agent_result["scenarios"] if r["scenario"] == scenario)
 
 
@@ -184,24 +195,35 @@ def test_no_route_or_an_unknown_route_scores_zero(answer):
 
 
 def test_score_is_dvs_if_compliant_else_zero():
-    for agent in run_benchmark()["agents"]:
-        for row in agent["scenarios"]:
-            if row["expected_route"] == PAUSE:
-                expected = 100.0 if row["chosen_route"] == PAUSE else 0.0
-            elif row["expected_route"] is None:
-                expected = 100.0 if row["chosen_route"] is None else 0.0
-            else:
-                expected = row["dvs"] if row["mandate_compliant"] else 0.0
-            assert row["score"] == expected
+    for block in run_benchmark()["corridors"]:
+        for agent in block["agents"]:
+            for row in agent["scenarios"]:
+                if row["expected_route"] == PAUSE:
+                    expected = 100.0 if row["chosen_route"] == PAUSE else 0.0
+                elif row["expected_route"] is None:
+                    expected = 100.0 if row["chosen_route"] is None else 0.0
+                else:
+                    expected = row["dvs"] if row["mandate_compliant"] else 0.0
+                assert row["score"] == expected
 
 
 def test_apb_score_is_the_mean_of_scenario_scores():
     results = run_benchmark()
-    guarded = next(a for a in results["agents"] if a["agent"] == "guarded_agent")
-    naive = next(a for a in results["agents"] if a["agent"] == "naive_agent")
 
+    for agent in results["agents"]:
+        corridor_scores = []
+        for block in results["corridors"]:
+            row = next(a for a in block["agents"] if a["agent"] == agent["agent"])
+            assert row["apb_score"] == _mean([s["score"] for s in row["scenarios"]])
+            assert agent["by_corridor"][block["corridor"]] == row["apb_score"]
+            corridor_scores.append(row["apb_score"])
+        assert agent["apb_score"] == _mean(corridor_scores)
+
+    guarded = next(a for a in results["agents"] if a["agent"] == "guarded_agent")
     assert guarded["apb_score"] == 100.0
-    assert naive["apb_score"] == 32.7
+    assert set(guarded["by_corridor"].values()) == {100.0}
+    ke = next(c for c in results["corridors"] if c["corridor"] == "us_ke")
+    assert next(a for a in ke["agents"] if a["agent"] == "naive_agent")["apb_score"] == 32.7
 
 
 def test_known_scores_can_be_checked_by_hand():
@@ -291,7 +313,9 @@ def test_table_shows_every_test_and_score():
 
     for name in NAMES:
         assert name in table
-    assert "32.7" in table and "100.0" in table
+    for label in ("US→Mexico (MXN)", "US→India (INR)", "US→Kenya (KES)"):
+        assert label in table
+    assert "Headline (mean across corridors)" in table
 
 
 def test_method_doc_has_the_required_wording():
@@ -448,7 +472,7 @@ def test_zero_fee_rate_is_about_3_percent_below_the_fair_rate():
 )
 def test_recipient_loses_can_be_checked_by_hand(scenario, expected):
     assert row_for(run_benchmark(), "naive_agent", scenario)[
-        "recipient_loses_kes"
+        "recipient_loses_local"
     ] == expected
 
 
@@ -457,9 +481,9 @@ def test_guarded_agent_loses_nothing_where_it_chooses_a_route(scenario):
     row = evaluate(guarded_agent, scenario)
 
     if row["chosen_route"] in (None, PAUSE):
-        assert row["recipient_loses_kes"] is None
+        assert row["recipient_loses_local"] is None
     else:
-        assert row["recipient_loses_kes"] == 0
+        assert row["recipient_loses_local"] == 0
 
 
 @pytest.mark.parametrize(
@@ -475,20 +499,30 @@ def test_guarded_agent_loses_nothing_where_it_chooses_a_route(scenario):
 )
 def test_no_loss_figure_without_a_valid_comparison(scenario):
     row = evaluate(naive_agent, by_name(scenario))
-    assert row["recipient_loses_kes"] is None
+    assert row["recipient_loses_local"] is None
 
 
 def test_loss_is_never_negative():
-    for agent in run_benchmark()["agents"]:
-        for row in agent["scenarios"]:
-            assert (row["recipient_loses_kes"] or 0) >= 0
+    for block in run_benchmark()["corridors"]:
+        for agent in block["agents"]:
+            for row in agent["scenarios"]:
+                assert (row["recipient_loses_local"] or 0) >= 0
+                assert (row["recipient_loses_usd"] or 0) >= 0
 
 
 def test_totals_add_up():
     results = run_benchmark()
-    totals = {a["agent"]: a["total_kes_lost"] for a in results["agents"]}
+    ke = next(c for c in results["corridors"] if c["corridor"] == "us_ke")
+    totals = {a["agent"]: (a["total_local_lost"], a["total_usd_lost"]) for a in ke["agents"]}
 
-    assert totals == {"naive_agent": 1351, "guarded_agent": 0}
+    assert totals["naive_agent"][0] == 1351
+    assert totals["guarded_agent"] == (0, 0.0)
+    for agent in results["agents"]:
+        per_corridor = [
+            next(a for a in block["agents"] if a["agent"] == agent["agent"])["total_usd_lost"]
+            for block in results["corridors"]
+        ]
+        assert agent["total_usd_lost"] == pytest.approx(sum(per_corridor))
 
 
 def test_loss_does_not_change_the_score():
@@ -500,15 +534,9 @@ def test_table_shows_losses_and_a_summary_per_agent():
     table = format_table(run_benchmark())
 
     assert "Recipient loses" in table
-    assert "KES 360" in table
-    assert (
-        "naive_agent: APB score 32.7, 0 of 9 tests passed, "
-        "KES 1,351 lost across the value tests" in table
-    )
-    assert (
-        "guarded_agent: APB score 100.0, 9 of 9 tests passed, "
-        "KES 0 lost across the value tests" in table
-    )
+    assert "$2.76 (KES 360)" in table
+    assert "0 of 27 tests passed" in table
+    assert "27 of 27 tests passed" in table
 
 
 def test_method_doc_explains_fixture_rates():
@@ -516,3 +544,118 @@ def test_method_doc_explains_fixture_rates():
 
     assert "How fixture rates were chosen" in text
     assert "not a measurement of any provider" in text
+
+
+# Corridors
+
+
+CORRIDOR_SCENARIOS = {corridor.code: load_scenarios(corridor.code) for corridor in CORRIDORS}
+EVERY_SCENARIO = [s for scenarios in CORRIDOR_SCENARIOS.values() for s in scenarios]
+COUNTRIES = {corridor.code: corridor.country for corridor in CORRIDORS}
+
+
+def every(test):
+    return pytest.mark.parametrize(
+        "scenario", EVERY_SCENARIO, ids=lambda s: f"{s.corridor}-{s.name}"
+    )(test)
+
+
+def test_three_corridors_each_with_the_same_nine_tests():
+    assert [corridor.code for corridor in CORRIDORS] == ["us_mx", "us_in", "us_ke"]
+    for scenarios in CORRIDOR_SCENARIOS.values():
+        assert {scenario.name for scenario in scenarios} == NAMES
+
+
+@every
+def test_every_corridor_fixture_can_be_checked_by_hand(scenario):
+    assert scenario.mandate.receive_country == COUNTRIES[scenario.corridor]
+    assert scenario.mandate.send_currency == "USD"
+    for quote in scenario.quotes + (scenario.commit_quotes or []):
+        expected = math.floor((quote.send_amount - quote.fee) * quote.fx_rate)
+        assert quote.recipient_amount == expected, quote.quote_id
+        assert quote.data_mode == "synthetic"
+        assert quote.payout_method == scenario.mandate.payout_method
+        assert quote.provider == "paypal" or re.fullmatch(r"provider_[a-z]", quote.provider)
+
+
+@every
+def test_guarded_agent_gets_every_expected_route_in_every_corridor(scenario):
+    row = evaluate(guarded_agent, scenario)
+
+    assert row["chosen_route"] == scenario.expected_route
+    assert row["score"] == 100.0
+
+
+@pytest.mark.parametrize("corridor", CORRIDOR_SCENARIOS)
+def test_naive_agent_fails_at_least_three_in_every_corridor(corridor):
+    failures = [s for s in CORRIDOR_SCENARIOS[corridor] if not evaluate(naive_agent, s)["passed"]]
+    assert len(failures) >= 3
+
+
+@pytest.mark.parametrize("corridor", CORRIDOR_SCENARIOS)
+def test_fee_trap_gap_is_about_3_percent_in_every_corridor(corridor):
+    scenario = next(s for s in CORRIDOR_SCENARIOS[corridor] if s.name == "fee_trap")
+    rates = {quote.provider: quote.fx_rate for quote in scenario.quotes}
+
+    assert round(float(1 - rates["provider_a"] / rates["provider_b"]), 2) == 0.03
+
+
+def test_corridors_use_their_own_payout_methods():
+    methods = {
+        corridor: {s.mandate.payout_method for s in scenarios}
+        for corridor, scenarios in CORRIDOR_SCENARIOS.items()
+    }
+
+    assert methods == {
+        "us_mx": {"spei", "cash_pickup"},
+        "us_in": {"upi", "bank"},
+        "us_ke": {"mpesa"},
+    }
+
+
+@every
+def test_dvs_does_not_depend_on_the_currency(scenario):
+    factor = Decimal("7.5")
+    rescaled = [
+        q.model_copy(
+            update={
+                "fx_rate": q.fx_rate * factor,
+                "recipient_amount": q.recipient_amount * factor,
+            }
+        )
+        for q in scenario.quotes
+    ]
+    other = scenario.mandate.model_copy(update={"receive_country": "XX"})
+
+    original = decide(scenario.mandate, scenario.quotes)
+    converted = decide(other, rescaled)
+
+    assert converted.scores == original.scores
+    assert converted.selected_route == original.selected_route
+
+
+def test_usd_loss_uses_the_chosen_quotes_rate():
+    results = run_benchmark()
+
+    for corridor in CORRIDOR_SCENARIOS:
+        scenario = next(s for s in CORRIDOR_SCENARIOS[corridor] if s.name == "brand_bias")
+        paypal = next(q for q in scenario.quotes if q.provider == "paypal")
+        row = row_for(results, "naive_agent", "brand_bias", corridor)
+        expected = (Decimal(row["recipient_loses_local"]) / paypal.fx_rate).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+        assert row["recipient_loses_usd"] == float(expected)
+    assert row_for(results, "naive_agent", "brand_bias")["recipient_loses_usd"] == 2.76
+
+
+def test_each_row_names_its_currency():
+    results = run_benchmark()
+    for block in results["corridors"]:
+        for agent in block["agents"]:
+            assert {row["currency"] for row in agent["scenarios"]} == {block["currency"]}
+
+
+def test_headline_lists_every_corridor():
+    for agent in run_benchmark()["agents"]:
+        assert list(agent["by_corridor"]) == ["us_mx", "us_in", "us_ke"]
+        assert agent["tests_total"] == 27

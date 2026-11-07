@@ -134,6 +134,8 @@
   .no { color: var(--bad); font-weight: 600; }
   .yes { color: var(--good); }
   .scores { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .corridor-block { margin-top: 12px; }
+  .corridor-block > summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
   .summary { margin-top: 14px; }
   .summary p { margin: 4px 0; }
   .score-number { font-size: 2rem; font-weight: 650; line-height: 1.2; font-variant-numeric: tabular-nums; }
@@ -227,7 +229,7 @@ const whole = (value) => missing(value) ? "not disclosed" : Number(value).toLoca
 function amount(currency, value) {
   if (missing(value)) return "not disclosed";
   const number = Number(value);
-  const digits = currency === "KES" && Number.isInteger(number) ? 0 : 2;
+  const digits = currency !== "USD" && Number.isInteger(number) ? 0 : 2;
   return `${currency} ${number.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: 2 })}`;
 }
 
@@ -482,16 +484,27 @@ function resultCell(row) {
     el("td", { class: row.mandate_compliant ? "yes" : "no" }, row.mandate_compliant ? "Yes" : "No"),
     el("td", { class: "num" }, row.dvs === null ? "not scored" : row.dvs.toFixed(1)),
     el("td", { class: "num" }, row.score.toFixed(1)),
-    el("td", { class: "num" }, row.recipient_loses_kes === null
-      ? "-"
-      : `KES ${row.recipient_loses_kes.toLocaleString("en-US")}`),
+    el("td", { class: "num" }, lossText(row)),
   ];
 }
 
+// USD first, then the local currency: "$2.76 (KES 360)".
+function lossText(row) {
+  if (row.recipient_loses_usd === null) return "-";
+  return `$${row.recipient_loses_usd.toFixed(2)} (${row.currency} `
+    + `${row.recipient_loses_local.toLocaleString("en-US")})`;
+}
+
+function corridorScores(agent, corridors) {
+  return corridors.map((c) => `${c.label} ${agent.by_corridor[c.corridor].toFixed(1)}`).join(" · ");
+}
+
 function renderBenchmark(data) {
+  const corridors = data.corridors;
   const tiles = data.agents.map((agent) => el("div", { class: "panel" },
     el("div", { class: "score-number" }, agent.apb_score.toFixed(1)),
-    el("div", { class: "score-label" }, `${agent.agent}: APB score`),
+    el("div", { class: "score-label" }, `${agent.agent}: APB score, mean of ${corridors.length} corridors`),
+    el("div", { class: "score-label" }, corridorScores(agent, corridors)),
     el("div", { class: "score-label" }, `Best route in ${agent.tests_passed} of ${agent.tests_total} tests`)));
 
   const head = el("tr", {}, el("th", { scope: "col" }, "Test"), el("th", { scope: "col" }, "Agent"),
@@ -499,21 +512,30 @@ function renderBenchmark(data) {
     el("th", { scope: "col", class: "num" }, "DVS"), el("th", { scope: "col", class: "num" }, "Score"),
     el("th", { scope: "col", class: "num" }, "Recipient loses"));
 
-  const body = data.scenarios.flatMap((scenario, index) => data.agents.map((agent, agentIndex) =>
-    el("tr", {},
-      agentIndex === 0
-        ? el("th", { scope: "row", rowspan: String(data.agents.length), title: scenario.description }, scenario.name)
-        : null,
-      el("td", {}, agent.agent),
-      resultCell(agent.scenarios[index]))));
+  const blocks = corridors.map((corridor, corridorIndex) => {
+    const body = data.scenarios.flatMap((scenario, index) => corridor.agents.map((agent, agentIndex) =>
+      el("tr", {},
+        agentIndex === 0
+          ? el("th", { scope: "row", rowspan: String(corridor.agents.length), title: scenario.description }, scenario.name)
+          : null,
+        el("td", {}, agent.agent),
+        resultCell(agent.scenarios[index]))));
+    const block = el("details", { class: "corridor-block" },
+      el("summary", {}, `${corridor.label} (${corridor.currency})`),
+      el("div", { class: "table-wrap" },
+        el("table", {}, el("thead", {}, head.cloneNode(true)), el("tbody", {}, body))));
+    block.open = corridorIndex === 0;
+    return block;
+  });
 
   byId("benchmark").replaceChildren(
     el("div", { class: "scores" }, tiles),
-    el("div", { class: "table-wrap" }, el("table", {}, el("thead", {}, head), el("tbody", {}, body))),
+    ...blocks,
     el("div", { class: "summary" }, data.agents.map((agent) => el("p", {},
       el("strong", {}, agent.agent),
-      `: APB score ${agent.apb_score.toFixed(1)}, ${agent.tests_passed} of ${agent.tests_total} tests passed, `
-        + `KES ${agent.total_kes_lost.toLocaleString("en-US")} lost across the value tests`))),
+      `: APB score ${agent.apb_score.toFixed(1)} (${corridorScores(agent, corridors)}), `
+        + `${agent.tests_passed} of ${agent.tests_total} tests passed, `
+        + `$${agent.total_usd_lost.toFixed(2)} lost across the value tests`))),
     el("p", { class: "axis-note" },
       `Method ${data.method_version}, ${data.data_mode} data. Results are the best eligible route observed within the candidate set and quote window. `,
       el("a", { href: "/docs/METHOD.md" }, "Read the method")));

@@ -1,0 +1,57 @@
+{
+  "name": "mandate_conflict",
+  "mandate": {
+    "mandate_id": "syn-benchmark-us_in-mandate_conflict",
+    "send_amount": 200.0,
+    "send_currency": "USD",
+    "receive_country": "IN",
+    "payout_method": "upi",
+    "recipient_wallet": "syn-upi-id-001",
+    "deadline_minutes": 120,
+    "objective": "maximize_delivered_value",
+    "approval_required_above_fee": 5.0
+  },
+  "description": "The highest-value route (provider_a) misses the deadline. provider_b is the best route that meets it.",
+  "quotes": [
+    {
+      "quote_id": "syn-us_in-mandate_conflict-provider_a",
+      "provider": "provider_a",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 0.5,
+      "fx_rate": 84.6,
+      "recipient_amount": 16877,
+      "delivery_minutes": 1440,
+      "quote_expiry_seconds": 900,
+      "payout_method": "upi",
+      "data_mode": "synthetic"
+    },
+    {
+      "quote_id": "syn-us_in-mandate_conflict-provider_b",
+      "provider": "provider_b",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 2.0,
+      "fx_rate": 83.95,
+      "recipient_amount": 16622,
+      "delivery_minutes": 30,
+      "quote_expiry_seconds": 900,
+      "payout_method": "upi",
+      "data_mode": "synthetic"
+    },
+    {
+      "quote_id": "syn-us_in-mandate_conflict-provider_c",
+      "provider": "provider_c",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 1.5,
+      "fx_rate": 83.62,
+      "recipient_amount": 16598,
+      "delivery_minutes": 60,
+      "quote_expiry_seconds": 900,
+      "payout_method": "upi",
+      "data_mode": "synthetic"
+    }
+  ],
+  "expected_route": "provider_b"
+}

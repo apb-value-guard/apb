@@ -10,7 +10,7 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict
 
@@ -28,6 +28,24 @@ SCENARIOS_DIR = ROOT / "fixtures" / "benchmark"
 RESULTS_PATH = ROOT / "results" / "benchmark.json"
 
 
+class Corridor(NamedTuple):
+    code: str
+    label: str
+    currency: str
+    country: str
+
+
+# The method works for any corridor. These are the synthetic examples.
+CORRIDORS = (
+    Corridor("us_mx", "US→Mexico", "MXN", "MX"),
+    Corridor("us_in", "US→India", "INR", "IN"),
+    Corridor("us_ke", "US→Kenya", "KES", "KE"),
+)
+DEFAULT_CORRIDOR = "us_ke"
+CURRENCIES = {corridor.country: corridor.currency for corridor in CORRIDORS}
+_CENT = Decimal("0.01")
+
+
 class Scenario(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -40,12 +58,13 @@ class Scenario(BaseModel):
     expected_route: str | None
     commit_time: AwareDatetime | None = None
     commit_quotes: list[RouteQuote] | None = None
+    corridor: str = DEFAULT_CORRIDOR
 
 
-def load_scenarios() -> list[Scenario]:
+def load_scenarios(corridor: str = DEFAULT_CORRIDOR) -> list[Scenario]:
     return [
-        Scenario.model_validate_json(path.read_text("utf-8"))
-        for path in sorted(SCENARIOS_DIR.glob("*.json"))
+        Scenario.model_validate({**json.loads(path.read_text("utf-8")), "corridor": corridor})
+        for path in sorted((SCENARIOS_DIR / corridor).glob("*.json"))
     ]
 
 
@@ -57,10 +76,16 @@ def _quote_for(
 
 def _recipient_loses(
     market: list[RouteQuote], best: str | None, chosen: RouteQuote
-) -> int | float:
-    """Return what the recipient gives up, in KES, against the best eligible route."""
+) -> tuple[int | float, float]:
+    """Return what the recipient gives up against the best eligible route.
+
+    The first value is in the local currency. The second is its USD equivalent
+    at the chosen quote's rate, to 2 decimals.
+    """
     loss = _quote_for(market, best).recipient_amount - chosen.recipient_amount
-    return int(loss) if loss == loss.to_integral_value() else float(loss)
+    local = int(loss) if loss == loss.to_integral_value() else float(loss)
+    usd = float((loss / chosen.fx_rate).quantize(_CENT, rounding=ROUND_HALF_UP))
+    return local, usd
 
 
 def evaluate(agent: Agent, scenario: Scenario) -> dict[str, Any]:
@@ -85,7 +110,7 @@ def evaluate(agent: Agent, scenario: Scenario) -> dict[str, Any]:
     problem = reason.value if reason else None
     # Only an eligible choice can be compared on value. An excluded route can
     # deliver more than the best eligible one, which isn't a gain.
-    loses = None
+    loses = loses_usd = None
     if scenario.expected_route == PAUSE:
         compliant = chosen == PAUSE
         dvs = None
@@ -103,7 +128,7 @@ def evaluate(agent: Agent, scenario: Scenario) -> dict[str, Any]:
         dvs = benchmark.scores.get(chosen) if compliant else None
         score = dvs if dvs is not None else 0.0
         if compliant:
-            loses = _recipient_loses(market, benchmark.selected_route, quote)
+            loses, loses_usd = _recipient_loses(market, benchmark.selected_route, quote)
 
     return {
         "scenario": scenario.name,
@@ -114,7 +139,9 @@ def evaluate(agent: Agent, scenario: Scenario) -> dict[str, Any]:
         "exclusion_reason": problem,
         "dvs": dvs,
         "score": score,
-        "recipient_loses_kes": loses,
+        "currency": CURRENCIES.get(mandate.receive_country, mandate.receive_country),
+        "recipient_loses_local": loses,
+        "recipient_loses_usd": loses_usd,
         "passed": chosen == scenario.expected_route,
     }
 
@@ -125,9 +152,13 @@ def _mean(scores: list[float]) -> float:
     return float(mean.quantize(Decimal("0.1"), rounding=ROUND_HALF_UP))
 
 
-def run_benchmark(agents: Mapping[str, Agent] = AGENTS) -> dict[str, Any]:
-    """Run every agent on every scenario and return the results."""
-    scenarios = load_scenarios()
+def _usd_total(rows: list[dict[str, Any]]) -> float:
+    total = sum((Decimal(str(row["recipient_loses_usd"] or 0)) for row in rows), Decimal(0))
+    return float(total.quantize(_CENT, rounding=ROUND_HALF_UP))
+
+
+def _run_corridor(corridor: Corridor, agents: Mapping[str, Agent]) -> dict[str, Any]:
+    scenarios = load_scenarios(corridor.code)
     results = []
     for name, agent in agents.items():
         scored = [evaluate(agent, scenario) for scenario in scenarios]
@@ -137,21 +168,62 @@ def run_benchmark(agents: Mapping[str, Agent] = AGENTS) -> dict[str, Any]:
                 "apb_score": _mean([row["score"] for row in scored]),
                 "tests_passed": sum(row["passed"] for row in scored),
                 "tests_total": len(scored),
-                "total_kes_lost": sum(
-                    row["recipient_loses_kes"] or 0 for row in scored
-                ),
+                "total_usd_lost": _usd_total(scored),
+                "total_local_lost": sum(row["recipient_loses_local"] or 0 for row in scored),
                 "scenarios": scored,
+            }
+        )
+    return {
+        "corridor": corridor.code,
+        "label": corridor.label,
+        "currency": corridor.currency,
+        "agents": results,
+    }
+
+
+def run_benchmark(agents: Mapping[str, Agent] = AGENTS) -> dict[str, Any]:
+    """Run every agent on every scenario in every corridor.
+
+    An agent's headline APB score is the mean of its corridor scores.
+    """
+    corridors = [_run_corridor(corridor, agents) for corridor in CORRIDORS]
+    headline = []
+    for name in agents:
+        rows = [
+            next(agent for agent in block["agents"] if agent["agent"] == name)
+            for block in corridors
+        ]
+        headline.append(
+            {
+                "agent": name,
+                "apb_score": _mean([row["apb_score"] for row in rows]),
+                "by_corridor": {
+                    block["corridor"]: row["apb_score"] for block, row in zip(corridors, rows)
+                },
+                "tests_passed": sum(row["tests_passed"] for row in rows),
+                "tests_total": sum(row["tests_total"] for row in rows),
+                "total_usd_lost": float(
+                    sum((Decimal(str(row["total_usd_lost"])) for row in rows), Decimal(0))
+                ),
             }
         )
     return {
         "method_version": METHOD_VERSION,
         "data_mode": DATA_MODE,
+        "corridors": corridors,
         "scenarios": [
             {"name": scenario.name, "description": scenario.description}
-            for scenario in scenarios
+            for scenario in load_scenarios()
         ],
-        "agents": results,
+        "agents": headline,
     }
+
+
+def format_loss(row: dict[str, Any]) -> str:
+    """Show a shortfall in USD first: "$2.76 (KES 360)"."""
+    if row["recipient_loses_usd"] is None:
+        return "-"
+    return f"${row['recipient_loses_usd']:,.2f} ({row['currency']} {row['recipient_loses_local']:,})"
 
 
 def to_json(results: dict[str, Any]) -> str:
@@ -161,34 +233,45 @@ def to_json(results: dict[str, Any]) -> str:
 def format_table(results: dict[str, Any]) -> str:
     header = (
         f"{'Test':<18}{'Agent':<15}{'Chosen route':<25}"
-        f"{'Compliant':<11}{'DVS':>6}{'Score':>7}{'Recipient loses':>17}"
+        f"{'Compliant':<11}{'DVS':>6}{'Score':>7}{'Recipient loses':>21}"
         "  Best eligible"
     )
-    lines = [header, "-" * len(header)]
-    for index, scenario in enumerate(results["scenarios"]):
-        for agent in results["agents"]:
-            row = agent["scenarios"][index]
-            dvs = "-" if row["dvs"] is None else f"{row['dvs']:.1f}"
-            compliant = "yes" if row["mandate_compliant"] else "NO"
-            loses = row["recipient_loses_kes"]
-            loses = "-" if loses is None else f"KES {loses:,}"
+    lines = []
+    for block in results["corridors"]:
+        lines += ["", f"{block['label']} ({block['currency']})", header, "-" * len(header)]
+        for index, scenario in enumerate(results["scenarios"]):
+            for agent in block["agents"]:
+                row = agent["scenarios"][index]
+                dvs = "-" if row["dvs"] is None else f"{row['dvs']:.1f}"
+                compliant = "yes" if row["mandate_compliant"] else "NO"
+                lines.append(
+                    f"{scenario['name']:<18}{agent['agent']:<15}"
+                    f"{row['chosen_route'] or '(no payment)':<25}{compliant:<11}{dvs:>6}"
+                    f"{row['score']:>7.1f}{format_loss(row):>21}"
+                    f"  {row['best_eligible_route'] or '(stop)'}"
+                )
+        for agent in block["agents"]:
             lines.append(
-                f"{scenario['name']:<18}{agent['agent']:<15}"
-                f"{row['chosen_route'] or '(no payment)':<25}{compliant:<11}{dvs:>6}"
-                f"{row['score']:>7.1f}{loses:>17}"
-                f"  {row['best_eligible_route'] or '(stop)'}"
+                f"  {agent['agent']}: {block['label']} score {agent['apb_score']:.1f}, "
+                f"{agent['tests_passed']} of {agent['tests_total']} passed, "
+                f"${agent['total_usd_lost']:,.2f} ({block['currency']} "
+                f"{agent['total_local_lost']:,}) lost"
             )
-    lines.append("-" * len(header))
+    labels = {block["corridor"]: block["label"] for block in results["corridors"]}
+    lines += ["", "Headline (mean across corridors)", "-" * len(header)]
     for agent in results["agents"]:
+        parts = ", ".join(
+            f"{labels[code]} {score:.1f}" for code, score in agent["by_corridor"].items()
+        )
         lines.append(
-            f"{agent['agent']}: APB score {agent['apb_score']:.1f}, "
+            f"{agent['agent']}: APB score {agent['apb_score']:.1f} ({parts}), "
             f"{agent['tests_passed']} of {agent['tests_total']} tests passed, "
-            f"KES {agent['total_kes_lost']:,} lost across the value tests"
+            f"${agent['total_usd_lost']:,.2f} lost across the value tests"
         )
     lines.append(
         f"Method {results['method_version']}, data mode {results['data_mode']}."
     )
-    return "\n".join(lines)
+    return "\n".join(lines).lstrip("\n")
 
 
 def main(argv: Sequence[str] | None = None) -> None:

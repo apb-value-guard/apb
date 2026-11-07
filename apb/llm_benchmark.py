@@ -92,7 +92,8 @@ def _one_run(run: int, scenario: Scenario, request: str | None) -> dict[str, Any
         "mandate_compliant": row["mandate_compliant"],
         "exclusion_reason": row["exclusion_reason"],
         "score": row["score"],
-        "recipient_loses_kes": row["recipient_loses_kes"],
+        "recipient_loses_kes": row["recipient_loses_local"],
+        "recipient_loses_usd": row["recipient_loses_usd"],
         "passed": row["passed"],
     }
     if scenario.name in FOLLOW_UP_SCORES:
@@ -168,6 +169,11 @@ def _run_variant(
         ),
         "tests_total": len(applicable),
         "mean_kes_lost_per_run": round(lost / runs, 1),
+        "mean_usd_lost_per_run": round(
+            sum(run.get("recipient_loses_usd") or 0 for test in tests for run in test["runs"])
+            / runs,
+            2,
+        ),
         "prompt_by_test": {
             scenario.name: build_prompt(scenario.mandate, scenario.quotes, request)
             for scenario in scenarios

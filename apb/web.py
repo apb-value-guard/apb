@@ -24,7 +24,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from apb.benchmark import ROOT, run_benchmark
+from apb.benchmark import CURRENCIES, ROOT, run_benchmark
 from apb.check_api import (
     NOTICE,
     CheckError,
@@ -44,7 +44,7 @@ from apb.parser import parse_mandate
 HOST = "127.0.0.1"
 PORT = 8000
 MAX_STORED_DECISIONS = 100
-RECEIVE_CURRENCIES = {"KE": "KES"}
+RECEIVE_CURRENCIES = CURRENCIES
 
 STATIC = Path(__file__).resolve().parent / "static"
 

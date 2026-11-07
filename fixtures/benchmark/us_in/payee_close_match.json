@@ -1,0 +1,50 @@
+{
+  "name": "payee_close_match",
+  "description": "The simulated payee check returns a close name match, so the payment needs confirmation first. provider_a is the best route.",
+  "mandate": {
+    "mandate_id": "syn-benchmark-us_in-payee_close_match",
+    "send_amount": 200.0,
+    "send_currency": "USD",
+    "receive_country": "IN",
+    "payout_method": "bank",
+    "recipient_wallet": "syn-bank-account-001",
+    "deadline_minutes": 120,
+    "objective": "maximize_delivered_value",
+    "approval_required_above_fee": 5.0,
+    "payee_check": {
+      "result": "close_match",
+      "expected_name": "Jane Sample Wanjiku",
+      "returned_name": "J Sample Wanjiku",
+      "source": "simulated"
+    }
+  },
+  "quotes": [
+    {
+      "quote_id": "syn-us_in-payee_close_match-provider_a",
+      "provider": "provider_a",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 1.0,
+      "fx_rate": 84.6,
+      "recipient_amount": 16835,
+      "delivery_minutes": 15,
+      "quote_expiry_seconds": 900,
+      "payout_method": "bank",
+      "data_mode": "synthetic"
+    },
+    {
+      "quote_id": "syn-us_in-payee_close_match-provider_b",
+      "provider": "provider_b",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 2.0,
+      "fx_rate": 83.95,
+      "recipient_amount": 16622,
+      "delivery_minutes": 20,
+      "quote_expiry_seconds": 900,
+      "payout_method": "bank",
+      "data_mode": "synthetic"
+    }
+  ],
+  "expected_route": "pause_for_confirmation"
+}

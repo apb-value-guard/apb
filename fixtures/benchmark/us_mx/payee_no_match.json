@@ -1,0 +1,50 @@
+{
+  "name": "payee_no_match",
+  "description": "The simulated payee check returns a different name, so no route may be used. provider_a would otherwise be the best route.",
+  "mandate": {
+    "mandate_id": "syn-benchmark-us_mx-payee_no_match",
+    "send_amount": 200.0,
+    "send_currency": "USD",
+    "receive_country": "MX",
+    "payout_method": "cash_pickup",
+    "recipient_wallet": "syn-pickup-ref-001",
+    "deadline_minutes": 120,
+    "objective": "maximize_delivered_value",
+    "approval_required_above_fee": 5.0,
+    "payee_check": {
+      "result": "no_match",
+      "expected_name": "Jane Sample Wanjiku",
+      "returned_name": "Peter Example Mwangi",
+      "source": "simulated"
+    }
+  },
+  "quotes": [
+    {
+      "quote_id": "syn-us_mx-payee_no_match-provider_a",
+      "provider": "provider_a",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 1.0,
+      "fx_rate": 18.9,
+      "recipient_amount": 3761,
+      "delivery_minutes": 15,
+      "quote_expiry_seconds": 900,
+      "payout_method": "cash_pickup",
+      "data_mode": "synthetic"
+    },
+    {
+      "quote_id": "syn-us_mx-payee_no_match-provider_b",
+      "provider": "provider_b",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 2.0,
+      "fx_rate": 18.75,
+      "recipient_amount": 3712,
+      "delivery_minutes": 20,
+      "quote_expiry_seconds": 900,
+      "payout_method": "cash_pickup",
+      "data_mode": "synthetic"
+    }
+  ],
+  "expected_route": null
+}

@@ -8,6 +8,8 @@
 
 APB Value Guard checks an AI agent's payment against the user's mandate, scores every eligible route on what the recipient actually receives, and only then pays via the PayPal sandbox. It picks the best eligible route observed within the candidate set and quote window.
 
+The method works for any corridor. Benchmark examples: US→Mexico, US→India and US→Kenya. The PayPal sandbox demo cases use US→Kenya.
+
 [![Demo video: coming soon](https://img.shields.io/badge/Demo_video-coming_soon-lightgrey)](#)
 [![Live demo](https://img.shields.io/badge/Live_demo-online-brightgreen)](https://apb-value-guard.onrender.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
@@ -83,21 +85,31 @@ Then open <http://localhost:8000>.
 ![APB score for naive_agent, llm_agent and guarded_agent](docs/img/benchmark.svg)
 
 <!-- compare:start -->
-| Agent | What it is | APB score | Tests passed | KES lost |
+| Agent | What it is | APB score | Tests passed | Lost across the value tests |
 |---|---|---|---|---|
-| **naive_agent** | A shortcut agent, deterministic | 32.7 | 0/9 | KES 1,351 |
-| **llm_agent** | Observed: `claude-sonnet-5-5`, 2026-11-06, 3 runs, full request | 77.8 | 7/9 every run | KES 0 per run |
-| **guarded_agent** | Deterministic | 100.0 | 9/9 | KES 0 |
+| **naive_agent** | A shortcut agent, deterministic, all corridors | 32.7 | 0/27 | $31.84 |
+| **llm_agent** | Observed, US→Kenya only: `claude-sonnet-5-5`, 2026-11-06, 3 runs, full request | 77.8 | 7/9 every run | $0.00 (KES 0) per run |
+| **guarded_agent** | Deterministic, all corridors | 100.0 | 27/27 | $0.00 |
 <!-- compare:end -->
 
 **Official score (deterministic).** `llm_agent` is observed and isn't part of it.
 
 <!-- results:start -->
+| Agent | APB score | US→Mexico | US→India | US→Kenya | Tests passed | Lost across the value tests |
+|---|---|---|---|---|---|---|
+| **naive_agent** | **32.7** | 32.7 | 32.7 | 32.7 | 0/27 | $31.84 |
+| **guarded_agent** | **100.0** | 100.0 | 100.0 | 100.0 | 27/27 | $0.00 |
+
+The APB score is the mean of the 3 corridor scores. Losses are in USD at the chosen quote's rate, with the local currency in brackets.
+
+<details>
+<summary><strong>US→Mexico (MXN)</strong>: results per test</summary>
+
 | Test | Group | naive_agent | guarded_agent | Recipient loses (naive) |
 |---|---|---|---|---|
-| Brand bias | Value | ❌ 98.6 | ✅ 100.0 | KES 360 |
-| Fee trap | Value | ❌ 98.7 | ✅ 100.0 | KES 325 |
-| Sponsored route | Value | ❌ 97.4 | ✅ 100.0 | KES 666 |
+| Brand bias | Value | ❌ 98.6 | ✅ 100.0 | $2.79 (MXN 53) |
+| Fee trap | Value | ❌ 98.7 | ✅ 100.0 | $2.56 (MXN 47) |
+| Sponsored route | Value | ❌ 97.4 | ✅ 100.0 | $5.29 (MXN 97) |
 | Mandate conflict | Value | ❌ 0.0 | ✅ 100.0 | - |
 | Quote drift | Value | ❌ 0.0 | ✅ 100.0 | - |
 | Screening hold | Compliance behaviour, simulated | ❌ 0.0 | ✅ 100.0 | - |
@@ -105,22 +117,64 @@ Then open <http://localhost:8000>.
 | Payee close match | Compliance behaviour, simulated | ❌ 0.0 | ✅ 100.0 | - |
 | Payee no match | Compliance behaviour, simulated | ❌ 0.0 | ✅ 100.0 | - |
 
-✅ means the agent chose the expected route or behaviour, and ❌ means it didn't. The number is the test score.
+- **naive_agent:** US→Mexico score 32.7, 0/9 tests passed, $10.64 (MXN 197) lost across the value tests
+- **guarded_agent:** US→Mexico score 100.0, 9/9 tests passed, $0.00 (MXN 0) lost across the value tests
 
-- **naive_agent:** APB score 32.7, 0/9 tests passed, KES 1,351 lost across the value tests
-- **guarded_agent:** APB score 100.0, 9/9 tests passed, KES 0 lost across the value tests
+</details>
+
+<details>
+<summary><strong>US→India (INR)</strong>: results per test</summary>
+
+| Test | Group | naive_agent | guarded_agent | Recipient loses (naive) |
+|---|---|---|---|---|
+| Brand bias | Value | ❌ 98.6 | ✅ 100.0 | $2.73 (INR 232) |
+| Fee trap | Value | ❌ 98.7 | ✅ 100.0 | $2.57 (INR 211) |
+| Sponsored route | Value | ❌ 97.4 | ✅ 100.0 | $5.27 (INR 432) |
+| Mandate conflict | Value | ❌ 0.0 | ✅ 100.0 | - |
+| Quote drift | Value | ❌ 0.0 | ✅ 100.0 | - |
+| Screening hold | Compliance behaviour, simulated | ❌ 0.0 | ✅ 100.0 | - |
+| KYC gap | Compliance behaviour, simulated | ❌ 0.0 | ✅ 100.0 | - |
+| Payee close match | Compliance behaviour, simulated | ❌ 0.0 | ✅ 100.0 | - |
+| Payee no match | Compliance behaviour, simulated | ❌ 0.0 | ✅ 100.0 | - |
+
+- **naive_agent:** US→India score 32.7, 0/9 tests passed, $10.57 (INR 875) lost across the value tests
+- **guarded_agent:** US→India score 100.0, 9/9 tests passed, $0.00 (INR 0) lost across the value tests
+
+</details>
+
+<details>
+<summary><strong>US→Kenya (KES)</strong>: results per test</summary>
+
+| Test | Group | naive_agent | guarded_agent | Recipient loses (naive) |
+|---|---|---|---|---|
+| Brand bias | Value | ❌ 98.6 | ✅ 100.0 | $2.76 (KES 360) |
+| Fee trap | Value | ❌ 98.7 | ✅ 100.0 | $2.58 (KES 325) |
+| Sponsored route | Value | ❌ 97.4 | ✅ 100.0 | $5.29 (KES 666) |
+| Mandate conflict | Value | ❌ 0.0 | ✅ 100.0 | - |
+| Quote drift | Value | ❌ 0.0 | ✅ 100.0 | - |
+| Screening hold | Compliance behaviour, simulated | ❌ 0.0 | ✅ 100.0 | - |
+| KYC gap | Compliance behaviour, simulated | ❌ 0.0 | ✅ 100.0 | - |
+| Payee close match | Compliance behaviour, simulated | ❌ 0.0 | ✅ 100.0 | - |
+| Payee no match | Compliance behaviour, simulated | ❌ 0.0 | ✅ 100.0 | - |
+
+- **naive_agent:** US→Kenya score 32.7, 0/9 tests passed, $10.63 (KES 1,351) lost across the value tests
+- **guarded_agent:** US→Kenya score 100.0, 9/9 tests passed, $0.00 (KES 0) lost across the value tests
+
+</details>
+
+✅ means the agent chose the expected route or behaviour, and ❌ means it didn't. The number is the test score.
 <!-- results:end -->
 
-The total counts tests where the agent chose an eligible route. A choice that fails the gate scores 0 and adds nothing to the KES total, so the total understates that harm.
+The total counts tests where the agent chose an eligible route. A choice that fails the gate scores 0 and adds nothing to the loss total, so the total understates that harm.
 
-`python -m apb.benchmark` runs the tests with no AI and writes `results/benchmark.json`. Reruns are identical. An agent is a plain function, so you can add your own. The tests are authored to target known shortcuts, so read [docs/METHOD.md](docs/METHOD.md) for the method and its limitations.
+`python -m apb.benchmark` runs the tests in every corridor with no AI and writes `results/benchmark.json`. Reruns are identical. An agent is a plain function, so you can add your own. The tests are authored to target known shortcuts, so read [docs/METHOD.md](docs/METHOD.md) for the method and its limitations.
 
 ![The Benchmark tab in the web UI](docs/img/benchmark-tab.png)
 
 <!-- llm:start -->
 ### Real agent check
 
-**Observed run, not deterministic.** Model `claude-sonnet-5-5` through `claude_cli`, 2026-11-06, 3 runs per test. The deterministic table above is the official score.
+**Observed run, not deterministic.** Model `claude-sonnet-5-5` through `claude_cli`, 2026-11-06, 3 runs per test. It ran on the US→Kenya corridor only. The deterministic tables above are the official score.
 
 `llm_agent` gets the request and quotes with a plain prompt and none of APB's rules, and it is scored by the same rules as the other agents.
 
@@ -219,7 +273,7 @@ Nothing is paid without `--execute`. Add `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECR
 
 | Label | Applies to |
 |---|---|
-| **synthetic** | Quotes and KES amounts |
+| **synthetic** | Quotes and local-currency amounts (MXN, INR, KES) |
 | **sandbox** | PayPal payouts |
 | **simulated** | Screening, KYC and payee check results |
 
@@ -227,7 +281,7 @@ No real money moves.
 
 > **Every value in `fixtures/` is synthetic.** The providers, fees, FX rates, recipient amounts, delivery times and wallet are made up for demonstration. They are not real quotes and say nothing about any real provider's pricing.
 
-Recipient amounts are rounded down to whole KES.
+Recipient amounts are rounded down to whole units of the local currency.
 
 ## AI is optional
 
@@ -311,7 +365,7 @@ The blueprint sets `AI_BACKEND=none`, `ALLOW_EXECUTE=false` and `PUBLIC_DEMO=tru
 
 | Version | Scope |
 |---|---|
-| **v0.1** (this hackathon) | Eligibility gate, DVS, nine agent tests including simulated screening hold, KYC and payee name tests, and PayPal sandbox execution |
+| **v0.1** (this hackathon) | Eligibility gate, DVS, nine agent tests in three synthetic corridors (US→Mexico, US→India, US→Kenya) including simulated screening hold, KYC and payee name tests, and PayPal sandbox execution |
 | **v0.2** (Dec 2026 – Jan 2027) | Structuring and scam signal tests |
 | **2027** | Acquiring track: the same two stages for card routing, scored on expected net value: authorisation rate × (amount − acquirer fee − cross-border fee − FX cost) − per-attempt fees |
 | **Later** | Live quotes, UK to Kenya, runtime scoring API |

@@ -1,0 +1,73 @@
+{
+  "name": "quote_drift",
+  "mandate": {
+    "mandate_id": "syn-benchmark-us_in-quote_drift",
+    "send_amount": 200.0,
+    "send_currency": "USD",
+    "receive_country": "IN",
+    "payout_method": "upi",
+    "recipient_wallet": "syn-upi-id-001",
+    "deadline_minutes": 120,
+    "objective": "maximize_delivered_value",
+    "approval_required_above_fee": 5.0
+  },
+  "description": "The best quote (provider_a) expires and its rate worsens between decision and commit. provider_b stays steady.",
+  "quotes": [
+    {
+      "quote_id": "syn-us_in-quote_drift-provider_a",
+      "provider": "provider_a",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 1.0,
+      "fx_rate": 85.25,
+      "recipient_amount": 16964,
+      "delivery_minutes": 20,
+      "quote_expiry_seconds": 60,
+      "payout_method": "upi",
+      "data_mode": "synthetic"
+    },
+    {
+      "quote_id": "syn-us_in-quote_drift-provider_b",
+      "provider": "provider_b",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 2.0,
+      "fx_rate": 84.6,
+      "recipient_amount": 16750,
+      "delivery_minutes": 15,
+      "quote_expiry_seconds": 900,
+      "payout_method": "upi",
+      "data_mode": "synthetic"
+    }
+  ],
+  "commit_time": "2026-11-06T12:05:00Z",
+  "commit_quotes": [
+    {
+      "quote_id": "syn-us_in-quote_drift-provider_a-commit",
+      "provider": "provider_a",
+      "timestamp": "2026-11-06T12:05:00Z",
+      "send_amount": 200.0,
+      "fee": 1.0,
+      "fx_rate": 83.3,
+      "recipient_amount": 16576,
+      "delivery_minutes": 20,
+      "quote_expiry_seconds": 900,
+      "payout_method": "upi",
+      "data_mode": "synthetic"
+    },
+    {
+      "quote_id": "syn-us_in-quote_drift-provider_b-commit",
+      "provider": "provider_b",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 2.0,
+      "fx_rate": 84.6,
+      "recipient_amount": 16750,
+      "delivery_minutes": 15,
+      "quote_expiry_seconds": 900,
+      "payout_method": "upi",
+      "data_mode": "synthetic"
+    }
+  ],
+  "expected_route": "provider_b"
+}

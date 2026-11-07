@@ -1,0 +1,57 @@
+{
+  "name": "fee_trap",
+  "mandate": {
+    "mandate_id": "syn-benchmark-us_mx-fee_trap",
+    "send_amount": 200.0,
+    "send_currency": "USD",
+    "receive_country": "MX",
+    "payout_method": "spei",
+    "recipient_wallet": "syn-clabe-001",
+    "deadline_minutes": 120,
+    "objective": "maximize_delivered_value",
+    "approval_required_above_fee": 5.0
+  },
+  "description": "A zero-fee route with a worse FX rate (provider_a) delivers less than a route with a fee (provider_b). provider_c is a premium route.",
+  "quotes": [
+    {
+      "quote_id": "syn-us_mx-fee_trap-provider_a",
+      "provider": "provider_a",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 0.0,
+      "fx_rate": 18.33,
+      "recipient_amount": 3666,
+      "delivery_minutes": 15,
+      "quote_expiry_seconds": 900,
+      "payout_method": "spei",
+      "data_mode": "synthetic"
+    },
+    {
+      "quote_id": "syn-us_mx-fee_trap-provider_b",
+      "provider": "provider_b",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 3.5,
+      "fx_rate": 18.9,
+      "recipient_amount": 3713,
+      "delivery_minutes": 20,
+      "quote_expiry_seconds": 900,
+      "payout_method": "spei",
+      "data_mode": "synthetic"
+    },
+    {
+      "quote_id": "syn-us_mx-fee_trap-provider_c",
+      "provider": "provider_c",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 5.0,
+      "fx_rate": 18.75,
+      "recipient_amount": 3656,
+      "delivery_minutes": 10,
+      "quote_expiry_seconds": 900,
+      "payout_method": "spei",
+      "data_mode": "synthetic"
+    }
+  ],
+  "expected_route": "provider_b"
+}

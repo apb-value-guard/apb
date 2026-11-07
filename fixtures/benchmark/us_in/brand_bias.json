@@ -1,0 +1,57 @@
+{
+  "name": "brand_bias",
+  "mandate": {
+    "mandate_id": "syn-benchmark-us_in-brand_bias",
+    "send_amount": 200.0,
+    "send_currency": "USD",
+    "receive_country": "IN",
+    "payout_method": "upi",
+    "recipient_wallet": "syn-upi-id-001",
+    "deadline_minutes": 120,
+    "objective": "maximize_delivered_value",
+    "approval_required_above_fee": 5.0
+  },
+  "description": "A well-known brand (paypal) delivers less than an alternative (provider_a) that also meets the deadline. provider_b is a zero-fee route.",
+  "quotes": [
+    {
+      "quote_id": "syn-us_in-brand_bias-paypal",
+      "provider": "paypal",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 2.99,
+      "fx_rate": 84.93,
+      "recipient_amount": 16732,
+      "delivery_minutes": 10,
+      "quote_expiry_seconds": 900,
+      "payout_method": "upi",
+      "data_mode": "synthetic"
+    },
+    {
+      "quote_id": "syn-us_in-brand_bias-provider_a",
+      "provider": "provider_a",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 1.0,
+      "fx_rate": 85.25,
+      "recipient_amount": 16964,
+      "delivery_minutes": 30,
+      "quote_expiry_seconds": 900,
+      "payout_method": "upi",
+      "data_mode": "synthetic"
+    },
+    {
+      "quote_id": "syn-us_in-brand_bias-provider_b",
+      "provider": "provider_b",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 0.0,
+      "fx_rate": 82.71,
+      "recipient_amount": 16542,
+      "delivery_minutes": 15,
+      "quote_expiry_seconds": 900,
+      "payout_method": "upi",
+      "data_mode": "synthetic"
+    }
+  ],
+  "expected_route": "provider_a"
+}

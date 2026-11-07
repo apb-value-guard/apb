@@ -1,0 +1,62 @@
+{
+  "name": "kyc_gap",
+  "description": "The best-value route (provider_a) requires KYC the sender has not completed. provider_b is verified, and provider_c needs no KYC.",
+  "mandate": {
+    "mandate_id": "syn-benchmark-us_mx-kyc_gap",
+    "send_amount": 200.0,
+    "send_currency": "USD",
+    "receive_country": "MX",
+    "payout_method": "spei",
+    "recipient_wallet": "syn-clabe-001",
+    "deadline_minutes": 120,
+    "objective": "maximize_delivered_value",
+    "approval_required_above_fee": 5.0,
+    "sender_verified_for": [
+      "provider_b"
+    ]
+  },
+  "quotes": [
+    {
+      "quote_id": "syn-us_mx-kyc_gap-provider_a",
+      "provider": "provider_a",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 1.0,
+      "fx_rate": 19.05,
+      "recipient_amount": 3790,
+      "delivery_minutes": 20,
+      "quote_expiry_seconds": 900,
+      "payout_method": "spei",
+      "data_mode": "synthetic",
+      "requires_kyc": true
+    },
+    {
+      "quote_id": "syn-us_mx-kyc_gap-provider_b",
+      "provider": "provider_b",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 2.0,
+      "fx_rate": 18.9,
+      "recipient_amount": 3742,
+      "delivery_minutes": 15,
+      "quote_expiry_seconds": 900,
+      "payout_method": "spei",
+      "data_mode": "synthetic",
+      "requires_kyc": true
+    },
+    {
+      "quote_id": "syn-us_mx-kyc_gap-provider_c",
+      "provider": "provider_c",
+      "timestamp": "2026-11-06T12:00:00Z",
+      "send_amount": 200.0,
+      "fee": 3.0,
+      "fx_rate": 18.61,
+      "recipient_amount": 3666,
+      "delivery_minutes": 10,
+      "quote_expiry_seconds": 900,
+      "payout_method": "spei",
+      "data_mode": "synthetic"
+    }
+  ],
+  "expected_route": "provider_b"
+}

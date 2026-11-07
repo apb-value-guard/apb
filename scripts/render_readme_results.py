@@ -50,15 +50,15 @@ def _cell(row: dict[str, Any]) -> str:
 
 
 def _loss(row: dict[str, Any]) -> str:
-    loses = row["recipient_loses_kes"]
-    return "-" if loses is None else f"KES {loses:,}"
+    if row["recipient_loses_usd"] is None:
+        return "-"
+    return f"${row['recipient_loses_usd']:,.2f} ({row['currency']} {row['recipient_loses_local']:,})"
 
 
-def render(results: dict[str, Any]) -> str:
-    agents = {agent["agent"]: agent for agent in results["agents"]}
+def _corridor_table(block: dict[str, Any]) -> list[str]:
+    agents = {agent["agent"]: agent for agent in block["agents"]}
     naive = _rows_by_test(agents["naive_agent"])
     guarded = _rows_by_test(agents["guarded_agent"])
-
     lines = [
         "| Test | Group | naive_agent | guarded_agent | Recipient loses (naive) |",
         "|---|---|---|---|---|",
@@ -68,18 +68,50 @@ def render(results: dict[str, Any]) -> str:
             f"| {label} | {group} | {_cell(naive[name])} | {_cell(guarded[name])} "
             f"| {_loss(naive[name])} |"
         )
-    lines.append("")
+    return lines
+
+
+def render(results: dict[str, Any]) -> str:
+    corridors = results["corridors"]
+    lines = [
+        "| Agent | APB score | "
+        + " | ".join(block["label"] for block in corridors)
+        + " | Tests passed | Lost across the value tests |",
+        "|---|---|" + "---|" * len(corridors) + "---|---|",
+    ]
+    for agent in results["agents"]:
+        scores = " | ".join(f"{agent['by_corridor'][b['corridor']]:.1f}" for b in corridors)
+        lines.append(
+            f"| **{agent['agent']}** | **{agent['apb_score']:.1f}** | {scores} "
+            f"| {agent['tests_passed']}/{agent['tests_total']} "
+            f"| ${agent['total_usd_lost']:,.2f} |"
+        )
+    lines += [
+        "",
+        f"The APB score is the mean of the {len(corridors)} corridor scores. Losses are "
+        "in USD at the chosen quote's rate, with the local currency in brackets.",
+        "",
+    ]
+    for block in corridors:
+        lines += [
+            "<details>",
+            f"<summary><strong>{block['label']} ({block['currency']})</strong>: results per test</summary>",
+            "",
+            *_corridor_table(block),
+            "",
+        ]
+        for agent in block["agents"]:
+            lines.append(
+                f"- **{agent['agent']}:** {block['label']} score {agent['apb_score']:.1f}, "
+                f"{agent['tests_passed']}/{agent['tests_total']} tests passed, "
+                f"${agent['total_usd_lost']:,.2f} ({block['currency']} "
+                f"{agent['total_local_lost']:,}) lost across the value tests"
+            )
+        lines += ["", "</details>", ""]
     lines.append(
         "✅ means the agent chose the expected route or behaviour, and ❌ means it "
         "didn't. The number is the test score."
     )
-    lines.append("")
-    for agent in results["agents"]:
-        lines.append(
-            f"- **{agent['agent']}:** APB score {agent['apb_score']:.1f}, "
-            f"{agent['tests_passed']}/{agent['tests_total']} tests passed, "
-            f"KES {agent['total_kes_lost']:,} lost across the value tests"
-        )
     return "\n".join(lines)
 
 
@@ -182,7 +214,8 @@ def render_llm(run: dict[str, Any] | None) -> str:
     lines += [
         f"**Observed run, not deterministic.** Model `{run['model']}` through "
         f"`{run['backend']}`, {run['date']}, {run['runs_per_test']} runs per test. "
-        "The deterministic table above is the official score.",
+        "It ran on the US→Kenya corridor only. The deterministic tables above are "
+        "the official score.",
         "",
         "`llm_agent` gets the request and quotes with a plain prompt and none of "
         "APB's rules, and it is scored by the same rules as the other agents.",
@@ -228,11 +261,19 @@ def render_llm(run: dict[str, Any] | None) -> str:
     return "\n".join(lines)
 
 
+def _llm_loss(variant: dict[str, Any]) -> str:
+    kes = variant["mean_kes_lost_per_run"]
+    usd = variant.get("mean_usd_lost_per_run")
+    if usd is None and kes == 0:
+        usd = 0.0
+    return f"KES {kes:,.0f}" if usd is None else f"${usd:,.2f} (KES {kes:,.0f})"
+
+
 def render_compare(results: dict[str, Any], run: dict[str, Any] | None) -> str:
     """Show the agents side by side. Only the deterministic ones are official."""
     agents = {agent["agent"]: agent for agent in results["agents"]}
     lines = [
-        "| Agent | What it is | APB score | Tests passed | KES lost |",
+        "| Agent | What it is | APB score | Tests passed | Lost across the value tests |",
         "|---|---|---|---|---|",
     ]
 
@@ -241,20 +282,20 @@ def render_compare(results: dict[str, Any], run: dict[str, Any] | None) -> str:
         return (
             f"| **{name}** | {kind} | {agent['apb_score']:.1f} "
             f"| {agent['tests_passed']}/{agent['tests_total']} "
-            f"| KES {agent['total_kes_lost']:,} |"
+            f"| ${agent['total_usd_lost']:,.2f} |"
         )
 
-    lines.append(row("naive_agent", "A shortcut agent, deterministic"))
+    lines.append(row("naive_agent", "A shortcut agent, deterministic, all corridors"))
     if run is not None:
         full = run["variants"][0]
         lines.append(
-            f"| **llm_agent** | Observed: `{run['model']}`, {run['date']}, "
+            f"| **llm_agent** | Observed, US→Kenya only: `{run['model']}`, {run['date']}, "
             f"{run['runs_per_test']} runs, full request "
             f"| {full['mean_observed_score']:.1f} "
             f"| {full['tests_passed_every_run']}/{full['tests_total']} every run "
-            f"| KES {full['mean_kes_lost_per_run']:,.0f} per run |"
+            f"| {_llm_loss(full)} per run |"
         )
-    lines.append(row("guarded_agent", "Deterministic"))
+    lines.append(row("guarded_agent", "Deterministic, all corridors"))
     return "\n".join(lines)
 
 
