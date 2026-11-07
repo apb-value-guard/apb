@@ -9,13 +9,13 @@
 APB Value Guard checks an AI agent's payment against the user's mandate, scores every eligible route on what the recipient actually receives, and only then pays via the PayPal sandbox. It picks the best eligible route observed within the candidate set and quote window.
 
 [![Demo video: coming soon](https://img.shields.io/badge/Demo_video-coming_soon-lightgrey)](#)
-[![Live demo: coming soon](https://img.shields.io/badge/Live_demo-coming_soon-lightgrey)](#)
+[![Live demo](https://img.shields.io/badge/Live_demo-online-brightgreen)](https://apb-value-guard.onrender.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
 ![Python 3.11](https://img.shields.io/badge/Python-3.11-blue)
 ![Tests: passing](https://img.shields.io/badge/Tests-passing-brightgreen)
 ![Data: synthetic + sandbox](https://img.shields.io/badge/Data-synthetic_%2B_sandbox-orange)
 
-**Live demo:** _link coming soon_. The public demo uses synthetic quotes and makes no payments.
+**Live demo:** <https://apb-value-guard.onrender.com>. The public demo uses synthetic quotes and makes no payments. The free service sleeps when idle, so the first visit can take up to a minute.
 
 ## The problem in one line
 

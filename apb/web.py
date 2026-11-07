@@ -15,7 +15,7 @@ from typing import Any, Literal
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
@@ -33,6 +33,16 @@ MAX_STORED_DECISIONS = 100
 RECEIVE_CURRENCIES = {"KE": "KES"}
 
 STATIC = Path(__file__).resolve().parent / "static"
+
+LOCAL_FOOTER = (
+    "All quotes are synthetic. Payouts run in PayPal sandbox. No real money moves."
+)
+PUBLIC_FOOTER = (
+    "All quotes are synthetic. No payments run on this public demo; PayPal sandbox "
+    "payouts run locally (see the video)."
+)
+_BANNER_HIDDEN = 'id="public-banner" role="note" hidden>'
+_BANNER_SHOWN = 'id="public-banner" role="note">'
 METHOD_PATH = ROOT / "docs" / "METHOD.md"
 
 def public_demo() -> bool:
@@ -122,9 +132,19 @@ def _decision_response(
     }
 
 
+def render_page(public: bool) -> str:
+    """Return the page. Public mode shows its banner and footer in the HTML itself."""
+    page = (STATIC / "index.html").read_text("utf-8")
+    if not public:
+        return page
+    if _BANNER_HIDDEN not in page or LOCAL_FOOTER not in page:
+        raise RuntimeError("index.html no longer has the public banner or footer")
+    return page.replace(_BANNER_HIDDEN, _BANNER_SHOWN).replace(LOCAL_FOOTER, PUBLIC_FOOTER)
+
+
 @app.get("/", include_in_schema=False)
-def index() -> FileResponse:
-    return FileResponse(STATIC / "index.html")
+def index() -> HTMLResponse:
+    return HTMLResponse(render_page(public_demo()))
 
 
 @app.get("/docs/METHOD.md", response_class=PlainTextResponse)

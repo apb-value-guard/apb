@@ -321,3 +321,53 @@ def test_render_blueprint_keeps_the_demo_safe():
     assert service["PYTHON_VERSION"].startswith("3.11")
     assert "PAYPAL" not in text.replace("Never add PayPal", "")
     assert "ANTHROPIC" not in text
+
+
+# Public page in its first HTML, before any JavaScript
+
+PUBLIC_FOOTER = (
+    "All quotes are synthetic. No payments run on this public demo; PayPal sandbox "
+    "payouts run locally (see the video)."
+)
+LOCAL_FOOTER = (
+    "All quotes are synthetic. Payouts run in PayPal sandbox. No real money moves."
+)
+
+
+def test_public_page_has_the_banner_and_footer_in_its_html(monkeypatch, restore_web):
+    _, client = client_for(monkeypatch, public=True)
+
+    html = client.get("/").text
+
+    assert '<div class="banner" id="public-banner" role="note">' in html
+    assert 'id="public-banner" role="note" hidden' not in html
+    assert f"<footer>{PUBLIC_FOOTER}</footer>" in html
+    assert LOCAL_FOOTER not in html
+
+
+def test_local_page_keeps_the_banner_hidden_and_the_local_footer(monkeypatch, restore_web):
+    _, client = client_for(monkeypatch)
+
+    html = client.get("/").text
+
+    assert 'id="public-banner" role="note" hidden>' in html
+    assert f"<footer>{LOCAL_FOOTER}</footer>" in html
+    assert PUBLIC_FOOTER not in html
+
+
+def test_page_change_that_drops_the_markers_fails_loudly(monkeypatch, tmp_path):
+    from apb import web
+
+    (tmp_path / "index.html").write_text("<html>no markers</html>", "utf-8")
+    monkeypatch.setattr(web, "STATIC", tmp_path)
+
+    with pytest.raises(RuntimeError):
+        web.render_page(public=True)
+
+
+def test_readme_links_the_live_demo():
+    readme = (demo.FIXTURES.parent / "README.md").read_text("utf-8")
+
+    assert "(https://apb-value-guard.onrender.com)" in readme
+    assert "<https://apb-value-guard.onrender.com>" in readme
+    assert "coming_soon-lightgrey)](#)" not in readme.split("Live_demo")[1][:40]
