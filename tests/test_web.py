@@ -1,4 +1,5 @@
 import json
+import re
 from unittest.mock import MagicMock
 
 import pytest
@@ -90,7 +91,13 @@ def test_page_loads_with_title_tabs_and_footer(client):
 def test_page_has_no_external_resources(client):
     text = client.get("/").text
 
-    assert "https://" not in text and "http://" not in text
+    # Links out are fine; nothing the page loads (scripts, styles, images,
+    # fonts) may come from another origin.
+    for loader in ('src="http', "src='http", "<link", "@import", "url(http"):
+        assert loader not in text
+    assert re.findall(r'href="(https?://[^"]+)"', text) == [
+        "https://github.com/apb-value-guard/apb"
+    ]
 
 
 def test_page_never_injects_html(client):
