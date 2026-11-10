@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "agent_id": {
+      "title": "Agent Id",
+      "type": "string"
+    },
+    "approved_level": {
+      "title": "Approved Level",
+      "type": "integer"
+    },
+    "authority_gap": {
+      "title": "Authority Gap",
+      "type": "boolean"
+    },
+    "can_increase": {
+      "title": "Can Increase",
+      "type": "boolean"
+    },
+    "delegation_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Delegation Id"
+    },
+    "evidence_required": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Required",
+      "type": "array"
+    },
+    "expires_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Expires At"
+    },
+    "increase_path": {
+      "title": "Increase Path",
+      "type": "string"
+    },
+    "missing_controls": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Missing Controls",
+      "type": "array"
+    },
+    "reauthorize_by": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Reauthorize By"
+    },
+    "requested_action": {
+      "title": "Requested Action",
+      "type": "string"
+    },
+    "requested_level": {
+      "title": "Requested Level",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "agent_id",
+    "delegation_id",
+    "requested_action",
+    "requested_level",
+    "approved_level",
+    "authority_gap",
+    "missing_controls",
+    "evidence_required",
+    "can_increase",
+    "increase_path",
+    "expires_at",
+    "reauthorize_by"
+  ],
+  "title": "AuthorityProfile",
+  "type": "object"
+}

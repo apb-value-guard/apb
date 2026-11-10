@@ -88,7 +88,7 @@ def test_every_receipt_has_the_policy_version():
 
 @pytest.mark.parametrize(
     ("case", "decision"),
-    [("a", "PAY"), ("b", "HAND_OFF"), ("c", "STOP"), ("d", "PAUSE"), ("e", "STOP")],
+    [("a", "PAY"), ("b", "HANDOFF"), ("c", "STOP"), ("d", "PAUSE"), ("e", "STOP")],
 )
 def test_receipt_decision_for_each_demo_case(case, decision):
     assert decide(load_mandate(case), load_quotes()).decision == decision
@@ -96,7 +96,7 @@ def test_receipt_decision_for_each_demo_case(case, decision):
 
 def test_decision_rules():
     assert receipt_decision("paypal", None, None) == "PAY"
-    assert receipt_decision("provider_a", None, None) == "HAND_OFF"
+    assert receipt_decision("provider_a", None, None) == "HANDOFF"
     assert receipt_decision("paypal", None, "confirm") == "PAUSE"
     assert receipt_decision("provider_a", None, "confirm") == "PAUSE"
     assert receipt_decision(None, None, None) == "STOP"
@@ -109,7 +109,7 @@ def test_receipt_without_decision_gets_it_derived():
 
     receipt = DecisionReceipt.model_validate(data)
 
-    assert receipt.decision == "HAND_OFF"
+    assert receipt.decision == "HANDOFF"
     assert receipt.policy_version == "apb-v0.1.0"
 
 
@@ -138,7 +138,7 @@ def test_check_api_returns_the_new_receipt_fields():
 
     receipt = client.check(body)["receipt"]
 
-    assert receipt["decision"] == "HAND_OFF"
+    assert receipt["decision"] == "HANDOFF"
     assert receipt["policy_version"] == "apb-v0.1.0"
 
 

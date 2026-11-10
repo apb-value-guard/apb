@@ -48,7 +48,7 @@ POLICY_VERSION = "apb-v0.1.0"
 # The route APB executes itself. Any other selected route is handed off.
 PAYPAL = "paypal"
 
-Decision = Literal["PAY", "PAUSE", "STOP", "HAND_OFF"]
+Decision = Literal["PAY", "PAUSE", "STOP", "HANDOFF"]
 
 
 def receipt_decision(
@@ -56,16 +56,16 @@ def receipt_decision(
     stop_reason: str | None,
     confirmation_reason: str | None,
 ) -> Decision:
-    """PAY or HAND_OFF the selected route, PAUSE for confirmation, or STOP.
+    """PAY or HANDOFF the selected route, PAUSE for confirmation, or STOP.
 
-    HAND_OFF means the best route is another provider's: APB records the
+    HANDOFF means the best route is another provider's: APB records the
     decision and the payment is made there, not through PayPal.
     """
     if stop_reason or selected_route is None:
         return "STOP"
     if confirmation_reason:
         return "PAUSE"
-    return "PAY" if selected_route == PAYPAL else "HAND_OFF"
+    return "PAY" if selected_route == PAYPAL else "HANDOFF"
 
 
 SCREENING_STOP_MESSAGE = "Payment stopped: screening hold (simulated)"

@@ -155,20 +155,27 @@ def sender_batch_id(receipt: DecisionReceipt) -> str:
     return hashlib.sha256(seed.encode("utf-8")).hexdigest()
 
 
+SANDBOX_CURRENCIES = {"USD", "EUR"}
+
+
 def _payout_body(
-    batch_id: str, amount: Decimal, receiver: str
+    batch_id: str,
+    amount: Decimal,
+    receiver: str,
+    currency: str = PAYOUT_CURRENCY,
+    note: str = "Sandbox stand-in for M-PESA delivery.",
 ) -> dict[str, Any]:
     return {
         "sender_batch_header": {
             "sender_batch_id": batch_id,
-            "email_subject": "APB Value Guard sandbox payout",
+            "email_subject": "APB Guard sandbox payout",
         },
         "items": [
             {
                 "recipient_type": "EMAIL",
-                "amount": {"value": f"{amount:.2f}", "currency": PAYOUT_CURRENCY},
+                "amount": {"value": f"{amount:.2f}", "currency": currency},
                 "receiver": receiver,
-                "note": "Sandbox stand-in for M-PESA delivery.",
+                "note": note,
                 "sender_item_id": batch_id[:32],
             }
         ],
@@ -219,8 +226,26 @@ def create_payout(
         raise PayPalError("route_not_paypal")
     if mandate.send_currency != PAYOUT_CURRENCY:
         raise PayPalError("currency_unsupported")
-    if mandate.send_amount != mandate.send_amount.quantize(Decimal("0.01")):
+    return submit_payout(sender_batch_id(receipt), mandate.send_amount, PAYOUT_CURRENCY)
+
+
+def submit_payout(
+    batch_id: str,
+    amount: Decimal,
+    currency: str,
+    note: str = "Sandbox stand-in for M-PESA delivery.",
+) -> dict[str, Any]:
+    """Send one sandbox payout under a caller-derived batch id, then fetch its status.
+
+    The batch id is the idempotency key: PayPal rejects a reused one, and the
+    original payout is reported instead of paying twice.
+    """
+    if currency not in SANDBOX_CURRENCIES:
+        raise PayPalError("currency_unsupported")
+    if amount != amount.quantize(Decimal("0.01")) or amount <= 0:
         raise PayPalError("amount_invalid")
+    if not _BATCH_ID.fullmatch(batch_id.upper()) and not re.fullmatch(r"[a-z0-9-]{1,64}", batch_id):
+        raise PayPalError("batch_id_invalid")
 
     load_dotenv()
     receiver = os.environ.get("PAYPAL_SANDBOX_RECEIVER", "").strip()
@@ -232,12 +257,11 @@ def create_payout(
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
     }
-    batch_id = sender_batch_id(receipt)
     status, body = _call(
         "POST",
         f"{API_BASE}/v1/payments/payouts",
         headers,
-        json.dumps(_payout_body(batch_id, mandate.send_amount, receiver)).encode(),
+        json.dumps(_payout_body(batch_id, amount, receiver, currency, note)).encode(),
     )
 
     duplicate = False

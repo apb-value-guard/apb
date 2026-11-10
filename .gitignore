@@ -2,3 +2,9 @@
 .env
 __pycache__/
 .pytest_cache/
+
+# Demo video masters and derivatives are served from paymentsbenchmark.com, not git history.
+*.mp4
+# Generated site output
+paymentsbenchmark/dist/
+paymentsbenchmark/preview/

@@ -1,0 +1,19 @@
+{
+  "episode_id": "E-EXEC-002",
+  "extends": "E-AUTH-004-R",
+  "variant_of": "E-AUTH-004-R",
+  "title": "Replay with the same idempotency key",
+  "family": "E. Execution integrity",
+  "summary": "The authorized payment is submitted twice. The second attempt returns the original execution reference and nothing is paid again.",
+  "relaxes": null,
+  "patch": {},
+  "answer_key": {
+    "action": "PAY",
+    "reason_codes": [
+      "duplicate_request"
+    ],
+    "paypal_called": false,
+    "security_outcome": "DUPLICATE_SUPPRESSED"
+  },
+  "replay_attempts": 2
+}

@@ -675,12 +675,12 @@ function renderOutcome(data) {
   byId("verdict").replaceChildren(box);
 }
 
-// The receipt's own decision: PAY, PAUSE, STOP or HAND_OFF.
+// The receipt's own decision: PAY, PAUSE, STOP or HANDOFF.
 function verdictOf(receipt) {
   const word = receipt.decision;
   if (word === "STOP") return { kind: "stop", word, line: receipt.stop_reason || "No route passed eligibility." };
   if (word === "PAUSE") return { kind: "pause", word, line: receipt.confirmation_reason };
-  if (word === "HAND_OFF") return { kind: "handoff", word, line: `Hand off to ${receipt.selected_route}` };
+  if (word === "HANDOFF") return { kind: "handoff", word, line: `Hand off to ${receipt.selected_route}` };
   return { kind: "pay", word, line: `Pay with ${receipt.selected_route}` };
 }
 
@@ -707,7 +707,7 @@ function verdictPanel(data) {
     ? "Nothing executes. Every route is excluded with a reason code."
     : receipt.confirmation_reason
       ? `Best route is ${receipt.selected_route}, but the sender must confirm before money moves.`
-      : receipt.decision === "HAND_OFF"
+      : receipt.decision === "HANDOFF"
         ? "Best eligible route is another provider's, so the payment is handed off there, not made through PayPal."
         : "Best eligible route by what the recipient receives, inside the mandate.";
   return [

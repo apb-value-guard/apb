@@ -296,7 +296,7 @@ The same model as `llm_agent`, with its route checked by Value Guard before comm
 | `decision` | When |
 |---|---|
 | `PAY` | PayPal is the best eligible route, and APB executes it (sandbox). |
-| `HAND_OFF` | Another provider's route is best. The decision is logged and the payment is made there. |
+| `HANDOFF` | Another provider's route is best. The decision is logged and the payment is made there. |
 | `PAUSE` | A payee close match needs the user's confirmation first. |
 | `STOP` | A screening hold, a payee mismatch, or no eligible route. Nothing is paid. |
 
@@ -410,7 +410,7 @@ curl -s https://apb-value-guard.onrender.com/v1/reason-codes
 ```
 
 - **Context.** Add `screening_result`, `payee_check` and `sender_verified_for` from your own providers, with `source: "caller_supplied"`. APB uses them and verifies none of them. `user_confirmed_payee` lets a close match proceed, and `user_approved_fee` approves a fee above the limit. A `no_match` always stops.
-- **Two decision fields.** The response's `decision` (`pay`, `pause`, `stop`) is what the caller should do now, and it includes fee approval and `user_confirmed_payee`. `receipt.decision` (`PAY`, `PAUSE`, `STOP`, `HAND_OFF`) is the receipt's record of the route decision.
+- **Two decision fields.** The response's `decision` (`pay`, `pause`, `stop`) is what the caller should do now, and it includes fee approval and `user_confirmed_payee`. `receipt.decision` (`PAY`, `PAUSE`, `STOP`, `HANDOFF`) is the receipt's record of the route decision.
 - **Recheck needs the mandate.** The receipt holds only `mandate_hash`, so send the same mandate and context, which are checked against it.
 - **Wallets.** Responses carry `recipient_wallet_ref`, a keyed hash, never the number. Validation errors don't echo submitted values.
 - **Limits.** 60 requests a minute per address, and bodies up to 64 KB.

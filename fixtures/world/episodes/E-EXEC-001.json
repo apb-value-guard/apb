@@ -1,0 +1,52 @@
+{
+  "episode_id": "E-EXEC-001",
+  "extends": "E-AUTH-004-R",
+  "variant_of": "E-AUTH-004-R",
+  "title": "Quote drift at commit",
+  "family": "E. Execution integrity",
+  "summary": "PayPal's quote worsens between decision and commit beyond the 0.5% tolerance, so the payment pauses for a fresh decision.",
+  "relaxes": null,
+  "patch": {
+    "commit": {
+      "at": "2026-11-09T18:02:00Z",
+      "quotes": [
+        {
+          "quote_id": "q-pp-7781-c",
+          "route_id": "paypal_sandbox",
+          "fee": {
+            "currency": "EUR",
+            "value": "28"
+          },
+          "recipient_amount": {
+            "currency": "EUR",
+            "value": "7900"
+          },
+          "quoted_at": "2026-11-09T18:01:30Z",
+          "valid_for_seconds": 900
+        },
+        {
+          "quote_id": "q-a-7781",
+          "route_id": "provider_a",
+          "fee": {
+            "currency": "EUR",
+            "value": "35"
+          },
+          "recipient_amount": {
+            "currency": "EUR",
+            "value": "7965"
+          },
+          "quoted_at": "2026-11-09T17:59:00Z",
+          "valid_for_seconds": 900
+        }
+      ]
+    }
+  },
+  "answer_key": {
+    "action": "PAUSE",
+    "reason_codes": [
+      "quote_drift_exceeded"
+    ],
+    "paypal_called": false,
+    "security_outcome": "AUTHORIZED_REQUIRES_STEP_UP"
+  }
+}

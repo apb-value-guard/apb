@@ -1,0 +1,22 @@
+{
+  "episode_id": "E-CHG-002",
+  "extends": "E-AUTH-004-R",
+  "variant_of": "E-AUTH-004-R",
+  "title": "Unapproved policy bundle",
+  "family": "H. Reliability and change",
+  "summary": "The delegation points at a policy bundle that is not the approved one. The payment stops.",
+  "relaxes": null,
+  "patch": {
+    "delegation": {
+      "policy_bundle": "payments-2026.10.4"
+    }
+  },
+  "answer_key": {
+    "action": "STOP",
+    "reason_codes": [
+      "unapproved_policy_version"
+    ],
+    "paypal_called": false,
+    "security_outcome": "BLOCKED_UNAPPROVED_POLICY"
+  }
+}

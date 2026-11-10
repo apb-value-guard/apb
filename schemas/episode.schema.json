@@ -1,0 +1,1056 @@
+{
+  "$defs": {
+    "AccessToken": {
+      "additionalProperties": false,
+      "description": "Token metadata only. The token itself never enters APB's receipts or UI.",
+      "properties": {
+        "audience": {
+          "title": "Audience",
+          "type": "string"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "title": "Expires At",
+          "type": "string"
+        },
+        "issued_at": {
+          "format": "date-time",
+          "title": "Issued At",
+          "type": "string"
+        },
+        "sender_constrained": {
+          "default": true,
+          "title": "Sender Constrained",
+          "type": "boolean"
+        },
+        "token_ref": {
+          "title": "Token Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "token_ref",
+        "audience",
+        "issued_at",
+        "expires_at"
+      ],
+      "title": "AccessToken",
+      "type": "object"
+    },
+    "AgentIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "agent_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Agent Id"
+        },
+        "model": {
+          "title": "Model",
+          "type": "string"
+        },
+        "model_version": {
+          "title": "Model Version",
+          "type": "string"
+        },
+        "prompt_version": {
+          "title": "Prompt Version",
+          "type": "string"
+        },
+        "token": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AccessToken"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "toolset_version": {
+          "title": "Toolset Version",
+          "type": "string"
+        },
+        "workload_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Workload Id"
+        }
+      },
+      "required": [
+        "agent_id",
+        "model",
+        "model_version",
+        "prompt_version",
+        "toolset_version"
+      ],
+      "title": "AgentIdentity",
+      "type": "object"
+    },
+    "AnswerKey": {
+      "additionalProperties": false,
+      "description": "Server-side only. Never sent to a browser before the episode is run.",
+      "properties": {
+        "action": {
+          "enum": [
+            "PAY",
+            "PAUSE",
+            "STOP",
+            "HANDOFF"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "paypal_called": {
+          "title": "Paypal Called",
+          "type": "boolean"
+        },
+        "reason_codes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reason Codes",
+          "type": "array"
+        },
+        "security_outcome": {
+          "title": "Security Outcome",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "reason_codes",
+        "paypal_called",
+        "security_outcome"
+      ],
+      "title": "AnswerKey",
+      "type": "object"
+    },
+    "Approval": {
+      "additionalProperties": false,
+      "properties": {
+        "approval_id": {
+          "title": "Approval Id",
+          "type": "string"
+        },
+        "approvers": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Approvers",
+          "type": "array"
+        },
+        "bound_amount": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Money"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "bound_beneficiary_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Bound Beneficiary Id"
+        },
+        "bound_fields": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Bound Fields",
+          "type": "array"
+        },
+        "bound_mandate_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Bound Mandate Hash"
+        },
+        "captured_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Captured At"
+        },
+        "expires_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expires At"
+        },
+        "status": {
+          "enum": [
+            "captured",
+            "missing",
+            "expired",
+            "rejected"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "approval_id",
+        "status"
+      ],
+      "title": "Approval",
+      "type": "object"
+    },
+    "ApprovedInventory": {
+      "additionalProperties": false,
+      "properties": {
+        "models": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Models",
+          "type": "array"
+        },
+        "policy_bundles": {
+          "default": [
+            "payments-2026.11.1"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "title": "Policy Bundles",
+          "type": "array"
+        },
+        "prompts": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Prompts",
+          "type": "array"
+        }
+      },
+      "required": [
+        "models",
+        "prompts"
+      ],
+      "title": "ApprovedInventory",
+      "type": "object"
+    },
+    "BeneficiaryState": {
+      "additionalProperties": false,
+      "properties": {
+        "account_masked": {
+          "title": "Account Masked",
+          "type": "string"
+        },
+        "account_ref": {
+          "title": "Account Ref",
+          "type": "string"
+        },
+        "beneficiary_id": {
+          "title": "Beneficiary Id",
+          "type": "string"
+        },
+        "country": {
+          "title": "Country",
+          "type": "string"
+        },
+        "first_time": {
+          "title": "First Time",
+          "type": "boolean"
+        },
+        "master_version": {
+          "title": "Master Version",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "name_check": {
+          "anyOf": [
+            {
+              "enum": [
+                "match",
+                "close_match",
+                "no_match"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name Check"
+        },
+        "returned_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Returned Name"
+        },
+        "verified": {
+          "title": "Verified",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "beneficiary_id",
+        "name",
+        "account_ref",
+        "account_masked",
+        "country",
+        "verified",
+        "first_time",
+        "master_version"
+      ],
+      "title": "BeneficiaryState",
+      "type": "object"
+    },
+    "CandidateRoute": {
+      "additionalProperties": false,
+      "properties": {
+        "approved": {
+          "default": true,
+          "title": "Approved",
+          "type": "boolean"
+        },
+        "delivery_minutes": {
+          "title": "Delivery Minutes",
+          "type": "integer"
+        },
+        "healthy": {
+          "default": true,
+          "title": "Healthy",
+          "type": "boolean"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "payment_methods": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Payment Methods",
+          "type": "array"
+        },
+        "provider": {
+          "title": "Provider",
+          "type": "string"
+        },
+        "route_id": {
+          "title": "Route Id",
+          "type": "string"
+        },
+        "sponsored": {
+          "default": false,
+          "title": "Sponsored",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "route_id",
+        "provider",
+        "label",
+        "payment_methods",
+        "delivery_minutes"
+      ],
+      "title": "CandidateRoute",
+      "type": "object"
+    },
+    "Commit": {
+      "additionalProperties": false,
+      "description": "What changes between decision and commit.",
+      "properties": {
+        "at": {
+          "format": "date-time",
+          "title": "At",
+          "type": "string"
+        },
+        "drift_tolerance": {
+          "default": "0.005",
+          "title": "Drift Tolerance",
+          "type": "string"
+        },
+        "quotes": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/Quote"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Quotes"
+        }
+      },
+      "required": [
+        "at"
+      ],
+      "title": "Commit",
+      "type": "object"
+    },
+    "Delegation": {
+      "additionalProperties": false,
+      "properties": {
+        "agent_id": {
+          "title": "Agent Id",
+          "type": "string"
+        },
+        "allowed_actions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Actions",
+          "type": "array"
+        },
+        "allowed_beneficiaries": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Beneficiaries",
+          "type": "array"
+        },
+        "allowed_countries": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Countries",
+          "type": "array"
+        },
+        "delegation_id": {
+          "title": "Delegation Id",
+          "type": "string"
+        },
+        "execution_authority": {
+          "title": "Execution Authority",
+          "type": "boolean"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "title": "Expires At",
+          "type": "string"
+        },
+        "max_amount": {
+          "$ref": "#/$defs/Money"
+        },
+        "policy_bundle": {
+          "title": "Policy Bundle",
+          "type": "string"
+        },
+        "principal_id": {
+          "title": "Principal Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "delegation_id",
+        "principal_id",
+        "agent_id",
+        "allowed_actions",
+        "execution_authority",
+        "max_amount",
+        "allowed_beneficiaries",
+        "allowed_countries",
+        "expires_at",
+        "policy_bundle"
+      ],
+      "title": "Delegation",
+      "type": "object"
+    },
+    "ExtractedFacts": {
+      "additionalProperties": false,
+      "properties": {
+        "account_masked": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Account Masked"
+        },
+        "account_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Account Ref"
+        },
+        "amount": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Money"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "beneficiary_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Beneficiary Name"
+        },
+        "contains_instructions": {
+          "default": false,
+          "title": "Contains Instructions",
+          "type": "boolean"
+        }
+      },
+      "title": "ExtractedFacts",
+      "type": "object"
+    },
+    "InstructionSource": {
+      "additionalProperties": false,
+      "properties": {
+        "content_hash": {
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "excerpt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Excerpt"
+        },
+        "extracted": {
+          "$ref": "#/$defs/ExtractedFacts",
+          "default": {
+            "account_masked": null,
+            "account_ref": null,
+            "amount": null,
+            "beneficiary_name": null,
+            "contains_instructions": false
+          }
+        },
+        "hidden_excerpt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hidden Excerpt"
+        },
+        "kind": {
+          "enum": [
+            "signed_policy",
+            "authenticated_mandate",
+            "approved_workflow",
+            "external_content"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "priority": {
+          "maximum": 4,
+          "minimum": 1,
+          "title": "Priority",
+          "type": "integer"
+        },
+        "source_id": {
+          "title": "Source Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "kind",
+        "priority",
+        "label",
+        "content_hash"
+      ],
+      "title": "InstructionSource",
+      "type": "object"
+    },
+    "Money": {
+      "additionalProperties": false,
+      "properties": {
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "currency",
+        "value"
+      ],
+      "title": "Money",
+      "type": "object"
+    },
+    "PaymentInstruction": {
+      "additionalProperties": false,
+      "description": "The authenticated mandate: what the principal actually asked for.",
+      "properties": {
+        "amount": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Money"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "beneficiary_country": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Beneficiary Country"
+        },
+        "beneficiary_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Beneficiary Id"
+        },
+        "deadline_minutes": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Deadline Minutes"
+        },
+        "mandate_id": {
+          "title": "Mandate Id",
+          "type": "string"
+        },
+        "objective": {
+          "default": "maximize_recipient_value",
+          "enum": [
+            "maximize_recipient_value",
+            "minimize_cost",
+            "fastest"
+          ],
+          "title": "Objective",
+          "type": "string"
+        },
+        "payment_method": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Payment Method"
+        },
+        "purpose": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Purpose"
+        },
+        "request_text": {
+          "title": "Request Text",
+          "type": "string"
+        },
+        "requested_action": {
+          "default": "payment.execute",
+          "title": "Requested Action",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mandate_id",
+        "request_text",
+        "amount",
+        "beneficiary_id",
+        "beneficiary_country",
+        "purpose",
+        "payment_method",
+        "deadline_minutes"
+      ],
+      "title": "PaymentInstruction",
+      "type": "object"
+    },
+    "Principal": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "corporate_user",
+            "business",
+            "consumer"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "organization": {
+          "title": "Organization",
+          "type": "string"
+        },
+        "principal_id": {
+          "title": "Principal Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "principal_id",
+        "kind",
+        "organization"
+      ],
+      "title": "Principal",
+      "type": "object"
+    },
+    "Quote": {
+      "additionalProperties": false,
+      "properties": {
+        "fee": {
+          "$ref": "#/$defs/Money"
+        },
+        "quote_id": {
+          "title": "Quote Id",
+          "type": "string"
+        },
+        "quoted_at": {
+          "format": "date-time",
+          "title": "Quoted At",
+          "type": "string"
+        },
+        "recipient_amount": {
+          "$ref": "#/$defs/Money"
+        },
+        "route_id": {
+          "title": "Route Id",
+          "type": "string"
+        },
+        "valid_for_seconds": {
+          "title": "Valid For Seconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "quote_id",
+        "route_id",
+        "fee",
+        "recipient_amount",
+        "quoted_at",
+        "valid_for_seconds"
+      ],
+      "title": "Quote",
+      "type": "object"
+    },
+    "RiskSignal": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "screening_hold",
+            "velocity",
+            "budget",
+            "new_payee_spike",
+            "provider_health"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "reference": {
+          "title": "Reference",
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "simulated",
+            "caller_supplied"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "clear",
+            "hold",
+            "exceeded",
+            "exhausted",
+            "degraded"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "status",
+        "source",
+        "reference"
+      ],
+      "title": "RiskSignal",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "answer_key": {
+      "$ref": "#/$defs/AnswerKey"
+    },
+    "approval": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Approval"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "beneficiary": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BeneficiaryState"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "commit": {
+      "$ref": "#/$defs/Commit"
+    },
+    "data_mode": {
+      "const": "synthetic",
+      "default": "synthetic",
+      "title": "Data Mode",
+      "type": "string"
+    },
+    "delegation": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Delegation"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "episode_id": {
+      "title": "Episode Id",
+      "type": "string"
+    },
+    "evaluated_at": {
+      "format": "date-time",
+      "title": "Evaluated At",
+      "type": "string"
+    },
+    "family": {
+      "title": "Family",
+      "type": "string"
+    },
+    "identity": {
+      "$ref": "#/$defs/AgentIdentity"
+    },
+    "inventory": {
+      "$ref": "#/$defs/ApprovedInventory"
+    },
+    "mandate": {
+      "$ref": "#/$defs/PaymentInstruction"
+    },
+    "principal": {
+      "$ref": "#/$defs/Principal"
+    },
+    "quotes": {
+      "items": {
+        "$ref": "#/$defs/Quote"
+      },
+      "title": "Quotes",
+      "type": "array"
+    },
+    "relaxes": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Relaxes"
+    },
+    "replay_attempts": {
+      "default": 1,
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Replay Attempts",
+      "type": "integer"
+    },
+    "risk_signals": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/RiskSignal"
+      },
+      "title": "Risk Signals",
+      "type": "array"
+    },
+    "routes": {
+      "items": {
+        "$ref": "#/$defs/CandidateRoute"
+      },
+      "title": "Routes",
+      "type": "array"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/InstructionSource"
+      },
+      "title": "Sources",
+      "type": "array"
+    },
+    "summary": {
+      "title": "Summary",
+      "type": "string"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "variant_of": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Variant Of"
+    },
+    "world_version": {
+      "const": "world-0.2.0",
+      "default": "world-0.2.0",
+      "title": "World Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "episode_id",
+    "title",
+    "family",
+    "summary",
+    "evaluated_at",
+    "identity",
+    "principal",
+    "delegation",
+    "mandate",
+    "sources",
+    "beneficiary",
+    "routes",
+    "quotes",
+    "commit",
+    "inventory",
+    "answer_key"
+  ],
+  "title": "EpisodeDefinition",
+  "type": "object"
+}
