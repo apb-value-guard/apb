@@ -1113,6 +1113,9 @@ def copy_tree(dst):
     (dst / "benchmark.json").write_text(benchmark_json(), encoding="utf-8")
     (dst / "results.md").write_text(results_md(), encoding="utf-8")
     (dst / "sitemap.xml").write_text(sitemap(), encoding="utf-8")
+    # The method documents live once, in the main repository's docs/.
+    shutil.copy(v3.REPO_ROOT / "docs" / "METHOD.md", dst / "method.md")
+    shutil.copy(v3.REPO_ROOT / "docs" / "METHOD_V0_1.md", dst / "method-v0.1.md")
     copy_media(dst)
 
 

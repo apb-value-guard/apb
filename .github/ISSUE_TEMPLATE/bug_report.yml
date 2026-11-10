@@ -1,0 +1,23 @@
+name: Bug report
+description: Something in the code, demo or site doesn't work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Security issues go to private reporting, not here. Never paste credentials, tokens or payment data."
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce (episode ID, command or URL)
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Commit or version (method, world, policy bundle)

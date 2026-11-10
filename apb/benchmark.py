@@ -1,7 +1,7 @@
 """Score agents on the benchmark scenarios: python -m apb.benchmark
 
 Deterministic and timestamp-free, so reruns give identical output. See
-docs/METHOD.md for the method.
+docs/METHOD_V0_1.md for the method.
 """
 
 import argparse

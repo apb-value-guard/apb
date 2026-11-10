@@ -1,30 +1,32 @@
 # paymentsbenchmark.com
 
-Static site for the Agent Payments Benchmark (APB). Every page is plain pre-rendered HTML, so it works without JavaScript and is readable by search and AI crawlers. JavaScript only adds motion, the replay feed, the toggles and copy buttons.
+Static source for <https://paymentsbenchmark.com>: the APB v3.1 category, method, benchmark, evidence and enterprise site. Every page is pre-rendered HTML that works without JavaScript; scripts only add motion, the form helper and copy buttons. No cookies, no trackers.
+
+## Data
+
+The site never restates numbers by hand. `build.py` and `v3.py` read, from the main repository:
+
+- `results/world/reference.json`: version matrix, Authority Levels, reason codes, episodes (`python -m apb.guard.docs`)
+- `results/world/world-0.2.0.json`: APB World results (`python -m apb.guard.world`)
+- `results/world/sample-receipts.json`: real Decision Receipts
+- `docs/METHOD.md` and `docs/METHOD_V0_1.md`: published as `/method.md` and `/method-v0.1.md`
+
+The v0.1 corridor tables on `/results` come from the data block in `build.py` (method apb-0.1).
+
+## Build
+
+```
+python build.py
+```
+
+Writes `dist/` (deployable, clean URLs) and `preview/` (relative links). Both are git-ignored. The product video is not in git: place `APBv2.web.mp4` in `media/` first, or set `APB_SKIP_VIDEO=1` to build without it (CI does this).
 
 ## Deploy
 
-Upload the contents of `dist/` to any static host. Pages are `method.html`, `results.html` and so on, served at clean URLs (`/method`, `/results`):
+`deploy/deploy.ps1` uploads `dist/` to the host, swaps releases atomically and rolls back on failure. See [../docs/DEPLOYMENT.md](../docs/DEPLOYMENT.md).
 
-- **Cloudflare Pages / Netlify / GitHub Pages:** clean URLs work out of the box. Set `404.html` as the not-found page if the host asks.
-- **Vercel:** `dist/vercel.json` turns on `cleanUrls`.
+## Contact form
 
-Point paymentsbenchmark.com at the host. No cookies, no trackers, fonts are self-hosted.
+There is no backend. The form opens the visitor's mail app addressed to `CONTACT` in `build.py`. That address needs a working mailbox before the form is promoted.
 
-## Edit and rebuild
-
-All numbers live once, in the data block at the top of `build.py` (tests, agents, observed runs). Page text is in `src/pages/*.html`; styles and motion in `src/assets/`.
-
-```
-python3 build.py
-```
-
-This writes `dist/` (deployable, clean URLs) and `preview/` (relative `.html` links for local preview). `benchmark.json` and `results.md` are generated from the same data, so they always match the pages.
-
-## Before going live
-
-- `evaluations@paymentsbenchmark.com` is a placeholder contact address. Create it or change `CONTACT` in `build.py`.
-- The demo video card on the home page is a placeholder until the video is published. The live demo card links to https://apb-value-guard.onrender.com.
-- Point the two extra domains at the main site with a permanent (301) redirect, keeping the path: `paymentbenchmark.com` → `https://paymentsbenchmark.com` and `4pb.ai` → `https://paymentsbenchmark.com`. Most registrars and Cloudflare offer this as "URL forwarding" or a "redirect rule".
-
-Fonts: Space Grotesk and JetBrains Mono, SIL Open Font License (licences in `dist/fonts/`).
+Fonts: Space Grotesk and JetBrains Mono, SIL Open Font License (licences in `src/fonts/`).

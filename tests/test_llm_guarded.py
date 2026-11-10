@@ -344,7 +344,7 @@ def test_readme_shows_the_latest_guarded_run():
     saved = llm_guarded.latest_run()
     if saved is None:
         pytest.skip("no guarded run saved yet")
-    readme = (ROOT / "README.md").read_text("utf-8")
+    readme = (ROOT / "ECONOMIC_QUALITY_V0_1.md").read_text("utf-8")
     assert readme == llm_guarded.updated_readme(readme, saved), (
         "Rerun: python -c \"from apb import llm_guarded as g; ...\" (see tests)"
     )

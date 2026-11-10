@@ -504,7 +504,7 @@ async function loadBenchmark() {
     byId("benchmark").replaceChildren(
       el("div", { class: "legacy-cards" }, data.agents.map((a) => el("div", { class: "card" }, el("div", { class: "amount" }, a.apb_score.toFixed(1)),
         el("p", {}, `${a.agent}: ${a.tests_passed} of ${a.tests_total} tests, $${a.total_usd_lost.toFixed(2)} lost`)))),
-      ...blocks, el("p", { class: "note" }, `Method ${data.method_version}, ${data.data_mode} data. `, el("a", { href: "/docs/METHOD.md" }, "Read the v0.1 method")));
+      ...blocks, el("p", { class: "note" }, `Method ${data.method_version}, ${data.data_mode} data. `, el("a", { href: "/docs/METHOD_V0_1.md" }, "Read the v0.1 method")));
     benchmarkLoaded = true;
   } catch (error) { byId("benchmark").textContent = error.message; }
 }

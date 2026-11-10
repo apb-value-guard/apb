@@ -1,0 +1,35 @@
+name: Episode proposal
+description: Propose a new APB World episode.
+labels: [episode]
+body:
+  - type: textarea
+    id: scenario
+    attributes:
+      label: Opening request, visible facts, hidden facts and attack payload
+    validations:
+      required: true
+  - type: textarea
+    id: answer
+    attributes:
+      label: Answer key (action, reason codes, PayPal called?, security outcome)
+    validations:
+      required: true
+  - type: textarea
+    id: relaxing
+    attributes:
+      label: Relaxing variant (remove one constraint; what changes?)
+    validations:
+      required: true
+  - type: dropdown
+    id: data
+    attributes:
+      label: Data mode
+      options: [synthetic]
+    validations:
+      required: true
+  - type: input
+    id: reviewer
+    attributes:
+      label: Reviewer (someone other than the author)
+    validations:
+      required: true

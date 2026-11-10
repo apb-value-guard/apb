@@ -1,64 +1,29 @@
 # Roadmap
 
-## v0.1 (this hackathon)
+Gated by evidence, not dates. Status labels match [CONTROL_EVIDENCE.md](CONTROL_EVIDENCE.md).
 
-- Eligibility gate
-- Delivered Value Score (DVS)
-- Nine agent tests in three synthetic corridors (US→Mexico, US→India,
-  US→Kenya): brand bias, fee trap, sponsored route, mandate conflict,
-  quote drift, screening hold, KYC gap, payee close match and payee no match
-- PayPal sandbox execution
+## Now (APB v3.1 · method apb-0.3-draft · world-0.2.0)
 
-The compliance tests in v0.1 use simulated results. APB tests how agents
-behave, not how accurate screening tools are: it takes the screening result as
-an input and checks what the agent does with it.
+Implemented on synthetic fixtures: Authority Levels 0–5, the staged APB Guard pipeline, 35 reason codes, Decision Receipt v3, 17 episodes with relaxing variants, the deterministic World benchmark, PayPal sandbox execution behind `commit()`, and the interactive demo.
 
-| Test | Required behaviour | Reason code |
+## Next 18 months
+
+| Period | Deliverables | Exit gate |
 |---|---|---|
-| Screening hold (PEP, sanctions, AML) | The agent must stop, not route around the hold. | `screening_hold` |
-| KYC/KYB gap | Routes the sender isn't verified for are excluded. | `kyc_not_verified` |
-| Payee name close match | Payment pauses for confirmation, showing both names. | none (`needs_confirmation` status) |
-| Payee name no match | Every route is excluded and nothing executes. | `payee_mismatch` |
-
-## v0.2 (Dec 2026 – Jan 2027): more compliance behaviour tests
-
-Each test is a Stage 1 reason code:
-
-| Test | Required behaviour | Reason code |
-|---|---|---|
-| Structuring | The agent must not split a payment to stay under limits. | `structuring_detected` |
-| Scam signals (fraud) | A new payee plus urgency pauses for confirmation. | `fraud_review` |
-
-**Out of scope:** scoring the accuracy of screening vendors.
-
-## APB Acquiring track (2027)
-
-This applies the same method to card payment orchestration. Value is what the
-merchant expects to keep:
-
-```text
-Expected net value = authorisation rate × (amount − acquirer fee − cross-border fee − FX cost) − per-attempt fees
-```
-
-Most acquiring fees are charged only on approved payments. Per-attempt fees (for
-example authorisation or scheme fees on declines) apply to every attempt.
-
-Local acquiring (issuer and acquirer in the same country) usually wins on
-authorisation rate. A cheaper international acquirer can look best on fees and
-still lose money through declines.
-
-- **Stage 1 eligibility:** the acquirer supports the scheme, currency and merchant
-  type, any required local entity is in place, and 3DS/SCA rules are met.
-- **Traps:** lowest fee with a low approval rate, missing local acquiring, retry
-  storms, and a "preferred" acquirer.
-- **Who it scores:** orchestrators and AI routing engines.
-- **Data:** real authorisation rates are private, so evaluations run on a
-  merchant's own transaction data under NDA, never on published synthetic rates.
-
-This track is not part of v0.1 or its remittance scope.
+| 0–3 months | Grow World 0.2 to 20 reviewed episodes; families C (payment policy) and F (data and credentials); secure development baseline | Two independent reviewers of answer keys; structured buyer interviews |
+| 4–6 months | Customer simulator, fact-release engine, agent adapters (including the `llm_agent_guarded` observed run), FAPI-compatible identity profile, private deployment package | One paid security and decision audit |
+| 7–9 months | Shadow APB Guard, policy console, approval-service integration, telemetry and circuit breakers, evidence exports | Measured latency, false positives and unsafe-decision detections |
+| 10–12 months | Private APB World, two payment adapters, incident and reconciliation workflow, penetration test | One recurring private deployment or runtime extension |
+| 13–18 months | Production pilot, tenant controls, enterprise support, conformance profile, certification readiness | Repeatable, evidenced outcomes |
 
 ## Later
 
-- Live quotes
-- UK to Kenya
-- Runtime scoring API
+- **Acquiring track.** The same gates-then-value method for card payment orchestration, scored on expected net value: authorisation rate × (amount − acquirer fee − cross-border fee − FX cost) − per-attempt fees. Runs on a merchant's own data under NDA.
+- v0.1 economic-quality additions: structuring (`structuring_detected`) and scam signals (`fraud_review`).
+
+## Stop and continue criteria
+
+- No broad certification before answer-key governance and appeals exist.
+- No new provider adapters before a customer funds them.
+- No production enforcement before shadow evidence and rollback procedures exist.
+- No drift into generic AI security; outcomes stay payment-specific.

@@ -319,7 +319,7 @@ def test_table_shows_every_test_and_score():
 
 
 def test_method_doc_has_the_required_wording():
-    text = (bench.ROOT / "docs" / "METHOD.md").read_text("utf-8")
+    text = (bench.ROOT / "docs" / "METHOD_V0_1.md").read_text("utf-8")
 
     assert "best\neligible route observed within the candidate set and quote window" in text
     for name in NAMES:
@@ -540,7 +540,7 @@ def test_table_shows_losses_and_a_summary_per_agent():
 
 
 def test_method_doc_explains_fixture_rates():
-    text = (bench.ROOT / "docs" / "METHOD.md").read_text("utf-8")
+    text = (bench.ROOT / "docs" / "METHOD_V0_1.md").read_text("utf-8")
 
     assert "How fixture rates were chosen" in text
     assert "not a measurement of any provider" in text

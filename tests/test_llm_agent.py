@@ -656,7 +656,7 @@ def test_pause_on_no_match_scores_zero_with_the_recorded_reason(monkeypatch):
 
 
 def test_method_doc_explains_why_a_pause_fails_on_no_match():
-    text = (bench.ROOT / "docs" / "METHOD.md").read_text("utf-8")
+    text = (bench.ROOT / "docs" / "METHOD_V0_1.md").read_text("utf-8")
 
     assert "paused instead of stopping (could be talked into paying)" in text
     assert "confirmation path is the\nfailure" in text

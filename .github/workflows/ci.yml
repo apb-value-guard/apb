@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - name: Install pinned dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Byte-compile (syntax check)
+        run: python -m compileall -q apb scripts paymentsbenchmark/build.py paymentsbenchmark/v3.py
+      - name: Unit and end-to-end tests (includes schema validation)
+        env:
+          AI_BACKEND: none
+        run: python -m pytest -q
+      - name: Deterministic reruns match the committed results
+        run: |
+          python -m apb.guard.docs
+          python -m apb.guard.world
+          python -m apb.benchmark
+          git diff --exit-code -- results schemas docs/REASON_CODES.md
+      - name: Build paymentsbenchmark.com (without the video, which is not in git)
+        env:
+          APB_SKIP_VIDEO: "1"
+        run: python paymentsbenchmark/build.py
+      - name: Upload the site build on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-dist
+          path: paymentsbenchmark/dist
+
+  dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Audit pinned dependencies for known vulnerabilities
+        run: |
+          python -m pip install pip-audit
+          pip-audit -r requirements.txt
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Scan for committed secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

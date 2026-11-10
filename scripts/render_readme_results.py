@@ -10,7 +10,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 RESULTS = ROOT / "results" / "benchmark.json"
 LLM_RUNS = ROOT / "results" / "llm_runs"
-README = ROOT / "README.md"
+README = ROOT / "ECONOMIC_QUALITY_V0_1.md"
 
 START = "<!-- results:start -->"
 END = "<!-- results:end -->"
@@ -403,7 +403,7 @@ def main() -> None:
     text = updated_llm_section(text, run)
     with README.open("w", encoding="utf-8", newline="\n") as file:
         file.write(text)
-    print("Updated README.md")
+    print("Updated ECONOMIC_QUALITY_V0_1.md")
 
 
 if __name__ == "__main__":

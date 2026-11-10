@@ -185,6 +185,11 @@ def method() -> str:
     return METHOD_PATH.read_text("utf-8")
 
 
+@app.get("/docs/METHOD_V0_1.md", response_class=PlainTextResponse, include_in_schema=False)
+def method_v0_1() -> str:
+    return (ROOT / "docs" / "METHOD_V0_1.md").read_text("utf-8")
+
+
 @app.get("/healthz", include_in_schema=False)
 def healthz() -> dict[str, str]:
     return {"status": "ok"}

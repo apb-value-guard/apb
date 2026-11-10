@@ -5,7 +5,7 @@ from pathlib import Path
 from scripts import render_benchmark_svg, render_diagrams, render_readme_results
 
 ROOT = Path(__file__).resolve().parent.parent
-README = (ROOT / "README.md").read_text("utf-8")
+README = (ROOT / "ECONOMIC_QUALITY_V0_1.md").read_text("utf-8")
 RESULTS = json.loads((ROOT / "results" / "benchmark.json").read_text("utf-8"))
 RERUN = "out of date: rerun the render scripts in scripts/"
 
