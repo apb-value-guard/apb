@@ -861,8 +861,15 @@ def jsonld(p):
     return json.dumps({"@context": "https://schema.org", "@graph": graph}, ensure_ascii=False, indent=1).replace("</", "<\\/")
 
 
+def asset_version(name):
+    """Content hash for cache-busting: the URL changes whenever the file does."""
+    import hashlib
+    return hashlib.sha256((SRC / "assets" / name).read_bytes()).hexdigest()[:10]
+
+
 def shell(p, body, mode):
     r = "/" if mode == "dist" else ""
+    css_v, js_v = asset_version("site.css"), asset_version("site.js")
     canonical = f"{SITE}/{p['slug']}" if p["slug"] else SITE + "/"
     side_links = []
     mob_links = []
@@ -895,7 +902,7 @@ def shell(p, body, mode):
 <link rel="icon" href="{r}favicon.svg" type="image/svg+xml">
 <link rel="preload" href="{r}fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="{r}fonts/jetbrains-mono-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="{r}assets/site.css">
+<link rel="stylesheet" href="{r}assets/site.css?v={css_v}">
 <link rel="alternate" type="text/plain" href="{r}llms.txt" title="llms.txt">
 <link rel="alternate" type="text/markdown" href="{r}method.md" title="Method (Markdown)">
 <link rel="alternate" type="text/markdown" href="{r}results.md" title="Results (Markdown)">
@@ -945,7 +952,7 @@ def shell(p, body, mode):
 </main>
 </div>
 </div>
-<script src="{r}assets/site.js"></script>
+<script src="{r}assets/site.js?v={js_v}"></script>
 </body>
 </html>
 """

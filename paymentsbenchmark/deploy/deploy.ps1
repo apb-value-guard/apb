@@ -22,7 +22,8 @@ if (-not (Test-Path (Join-Path $Dist "index.html"))) { throw "dist/index.html mi
 
 Write-Host "== Packing dist/"
 if (Test-Path $Tar) { Remove-Item $Tar }
-& tar.exe -czf $Tar --exclude=vercel.json -C $Dist .
+# Windows' own tar: GNU tar (from Git Bash) reads "C:" as a remote host.
+& (Join-Path $env:SystemRoot "System32\tar.exe") -czf $Tar --exclude=vercel.json -C $Dist .
 if ($LASTEXITCODE -ne 0) { throw "tar failed" }
 
 Write-Host "== Uploading"
