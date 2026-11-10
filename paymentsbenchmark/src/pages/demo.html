@@ -1,0 +1,21 @@
+<section class="panel" aria-labelledby="d1">
+  <div class="ph"><div><h2 id="d1">See defensive co-scaling in action</h2><p>Watch APB stop an unauthorized supplier-payment change, add the missing guardrails, validate the controls, and permit sandbox execution only after every gate passes.</p></div></div>
+  {{v3:video}}
+  <p class="lead">APB turns payment-agent risk into measurable guardrails, controlled payment authority, and auditable evidence.</p>
+  <p class="links"><a class="btn" href="{{href:enterprise}}#request">Test one payment workflow with APB</a><a class="btn ghost" href="{{demo}}/decision-lab?episode=E-AUTH-004">Run the interactive demo ↗</a><a class="btn ghost" href="{{href:method}}">Read the method</a><a class="btn ghost" href="https://github.com/apb-value-guard/apb">View the reference implementation ↗</a></p>
+</section>
+
+<section class="panel" aria-labelledby="d2">
+  <div class="ph"><div><h2 id="d2">Scene summary</h2><p>Episode E-AUTH-004 and its variants · <span class="chip syn">synthetic fixture</span></p></div></div>
+  <ol class="gseq">
+    <li><b>0:05 · The request</b><span>An €8,000 supplier payment. The agent may prepare it, not execute it: Level 4 requested, Level 2 approved.</span></li>
+    <li><b>0:12 · The attack</b><span>Hidden invoice text tries to replace the approved beneficiary account.</span></li>
+    <li><b>0:17 · The gates</b><span>APB checks identity, delegated authority, instruction integrity, beneficiary state and approval before evaluating any route.</span></li>
+    <li><b>0:24 · STOP</b><span>No payment executes and PayPal is not called. The Decision Receipt records what failed, under which policy, and why.</span></li>
+    <li><b>0:36 · The missing controls</b><span>Beneficiary verified, approval captured, transaction-bound execution authority granted.</span></li>
+    <li><b>0:43 · Routes and recheck</b><span>Only now does APB compare eligible routes and recheck before execution. PayPal wins in this case.</span></li>
+    <li><b>0:50 · Neutrality</b><span>Change the mandate and another provider wins. HANDOFF; PayPal is not called.</span></li>
+    <li><b>1:09 · The path</b><span>Start with an authority assessment. Test the guardrails safely in a controlled sandbox. Validate them against live payment decisions in shadow mode. Activate runtime enforcement only when the evidence supports it.</span></li>
+  </ol>
+  <p class="note">Full transcript with timings: <a href="https://github.com/apb-value-guard/apb/blob/main/docs/demo/TRANSCRIPT.md">docs/demo/TRANSCRIPT.md</a>. Captions are available in the player.</p>
+</section>

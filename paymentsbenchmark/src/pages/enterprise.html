@@ -1,0 +1,36 @@
+<section class="panel" aria-labelledby="n1">
+  <div class="ph"><div><h2 id="n1">The deployment path</h2><p>Authority is earned with evidence before it is enforced in production.</p></div></div>
+  <ol class="path">
+    <li><b>1 · Authority assessment</b><span>Map your agent's current and requested authority level, exposure and control gaps.</span></li>
+    <li><b>2 · Controlled sandbox</b><span>Test the guardrails safely in a private APB World with your episodes and answer keys.</span></li>
+    <li><b>3 · Shadow mode</b><span>Validate them against live payment decisions without blocking anything.</span></li>
+    <li><b>4 · Runtime enforcement</b><span>Activate PAY, PAUSE, STOP and HANDOFF only when the evidence supports it.</span></li>
+  </ol>
+</section>
+
+<section class="panel" aria-labelledby="n2">
+  <div class="ph"><div><h2 id="n2">Offers</h2></div></div>
+  {{v3:offers}}
+</section>
+
+<section class="panel cta" id="request" aria-labelledby="n3">
+  <h2 id="n3">Deploying or accepting payment agents?</h2>
+  <p>Test one bounded payment workflow with APB. Tell us about the workflow and we will reply with a proposed assessment scope.</p>
+  <form class="form" id="pilot-form" action="mailto:{{contact}}" method="post" enctype="text/plain" novalidate>
+    <div class="fgrid">
+      <label>Name<input name="name" autocomplete="name" required></label>
+      <label>Work email<input name="email" type="email" autocomplete="email" required></label>
+      <label>Organization<input name="organization" autocomplete="organization" required></label>
+      <label>Role<input name="role" autocomplete="organization-title"></label>
+      <label>Workflow type<select name="workflow"><option>Supplier payments</option><option>Payouts</option><option>Refunds</option><option>Treasury transfers</option><option>Checkout or acquiring</option><option>Other</option></select></label>
+      <label>Current agent authority level<select name="current_level"><option>Level 0 · Observe</option><option>Level 1 · Recommend</option><option>Level 2 · Prepare</option><option>Level 3 · Initiate</option><option>Level 4 · Execute</option><option>Level 5 · Orchestrate</option><option>Not sure</option></select></label>
+      <label>Target deployment stage<select name="target_stage"><option>Authority assessment</option><option>Controlled sandbox</option><option>Shadow mode</option><option>Runtime enforcement</option></select></label>
+      <label>Data availability<select name="data"><option>Synthetic only</option><option>Replayed decisions</option><option>Live shadow data</option><option>Not sure</option></select></label>
+      <label>Preferred contact timing<input name="timing" placeholder="e.g. weekday mornings CET"></label>
+    </div>
+    <p class="privacy"><b>Privacy.</b> This form does not send data to any server. It opens an email to <code>{{contact}}</code> in your own mail app, so you see exactly what is sent. Don't include payment data, credentials or customer information. We use your details only to reply about this request.</p>
+    <label class="consent"><input type="checkbox" name="consent" required> I agree to be contacted about this request.</label>
+    <p class="links"><button class="btn" type="submit">Request a workflow assessment</button><button class="btn ghost" type="button" id="pilot-copy">Copy request text</button></p>
+    <p class="form-status" id="pilot-status" role="status" aria-live="polite"></p>
+  </form>
+</section>

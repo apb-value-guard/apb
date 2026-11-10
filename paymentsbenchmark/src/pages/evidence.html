@@ -1,0 +1,26 @@
+<section class="panel" aria-labelledby="e1">
+  <div class="ph"><div><h2 id="e1">Decision Receipt v3</h2><p>The receipt proves observable control behaviour without credentials, hidden reasoning or unnecessary personal data.</p></div></div>
+  <div class="row2">
+    <div class="prose">
+      <p>Every completed decision writes one receipt. It links the agent and its configuration hash, the delegation and requested versus approved level, instruction-integrity findings, the policy bundle and decision, the approval binding, the commit-time recheck and idempotency key, excluded routes, the selected action, reason codes, the execution reference, and a trace manifest hash.</p>
+      <p>The receipt's own hash covers every other field, so changing anything in it is detectable. The same episode always produces the same receipt.</p>
+      <p><b>Not recorded:</b> tokens, client secrets, full account numbers, authentication factors, raw prompts or chain-of-thought.</p>
+    </div>
+    <div>
+      <h3 class="sub-h">Receipt for E-AUTH-004 (STOP)</h3>
+      {{v3:receipt_stop}}
+    </div>
+  </div>
+  <p class="links"><a class="btn ghost" href="https://github.com/apb-value-guard/apb/blob/main/schemas/decision-receipt-v3.schema.json">JSON Schema ↗</a><a class="btn ghost" href="https://github.com/apb-value-guard/apb/blob/main/docs/DECISION_RECEIPT_V3.md">Field reference ↗</a><a class="btn ghost" href="{{demo}}/receipt">Generate one live ↗</a></p>
+</section>
+
+<section class="panel" aria-labelledby="e2">
+  <div class="ph"><div><h2 id="e2">Receipt for E-AUTH-004-R (PAY)</h2><p>Every gate passed, approval bound, quote rechecked, sandbox adapter invoked once.</p></div></div>
+  {{v3:receipt_pay}}
+  <p class="note">On the public demo the PayPal adapter is simulated (<code>simulated_no_credentials</code>) and makes no network call. With sandbox credentials locally, the reference is a PayPal sandbox payout batch ID.</p>
+</section>
+
+<section class="panel" aria-labelledby="e3">
+  <div class="ph"><div><h2 id="e3">Evidence integrity</h2></div></div>
+  {{v3:controls}}
+</section>

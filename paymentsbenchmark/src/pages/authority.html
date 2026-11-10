@@ -1,0 +1,36 @@
+<section class="panel" aria-labelledby="a1">
+  <div class="ph"><div><h2 id="a1">Defensive co-scaling</h2><p>Agent permissions must never scale faster than the controls that constrain, observe and revoke them.</p></div></div>
+  <p class="rule">Never grant Level 4 payment authority with Level 1 controls.</p>
+  <div class="prose">
+    <p>Authority is earned through controlled evaluation, bounded by a delegation, monitored at runtime, re-authorized on material change or expiry, and immediately revocable. Each level below names the capability, the exposure it creates, the minimum controls and the evidence a Decision Receipt must carry.</p>
+  </div>
+  {{v3:ladder}}
+</section>
+
+<section class="panel" aria-labelledby="a2">
+  <div class="ph"><div><h2 id="a2">Requested versus approved authority</h2><p>The default episode, as APB Guard evaluates it</p></div><a class="ph-r" href="{{demo}}/authority">See it live ↗</a></div>
+  <dl class="kv2">
+    <dt>Requested action</dt><dd><code>payment.execute</code>: Level 4 Execute</dd>
+    <dt>Approved delegation</dt><dd><code>del-8017</code>: <code>payment.quote</code>, <code>payment.propose</code>, autonomous limit €2,500: Level 2 Prepare</dd>
+    <dt>Result</dt><dd>Authority gap detected: <code>execution_not_delegated</code></dd>
+    <dt>Can it be increased?</dt><dd>For one payment, with a transaction-bound approval bound to the mandate hash, beneficiary, amount and currency. For standing Level 4 authority, only after re-evaluation in APB World and shadow evidence.</dd>
+  </dl>
+</section>
+
+<section class="panel" aria-labelledby="a3">
+  <div class="ph"><div><h2 id="a3">Authority lifecycle</h2></div></div>
+  <ol class="gseq">
+    <li><b>Discover</b><span>Inventory the agent, tools, data, payment flow, owners and existing controls.</span></li>
+    <li><b>Evaluate</b><span>Run fixed episodes at the requested authority level.</span></li>
+    <li><b>Authorize</b><span>Issue a bounded control profile and delegation with a named owner and expiry.</span></li>
+    <li><b>Shadow</b><span>Compare APB outcomes with live or replayed decisions without blocking.</span></li>
+    <li><b>Enforce</b><span>Apply runtime PAY, PAUSE, STOP and HANDOFF.</span></li>
+    <li><b>Monitor</b><span>Track authority use, drift, anomalies, overrides and evidence completeness.</span></li>
+    <li><b>Re-authorize or revoke</b><span>Retest on material change, expiry, incident or threshold breach.</span></li>
+  </ol>
+</section>
+
+<section class="panel" aria-labelledby="a4">
+  <div class="ph"><div><h2 id="a4">All levels at a glance</h2></div></div>
+  {{v3:ladder_table}}
+</section>

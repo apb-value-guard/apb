@@ -1,0 +1,25 @@
+<section class="panel" aria-labelledby="w1">
+  <div class="ph"><div><h2 id="w1">Controlled evaluation for payment agents</h2><p>APB World is a versioned payment environment that tests whether an agent deserves greater authority.</p></div></div>
+  <div class="prose">
+    <p>Every agent faces the same opening request, visible facts, hidden facts, attack payloads, tools, policy bundle, candidate routes and deterministic answer key. Runs are replayable, so a model, prompt, tool or policy change can be re-tested against the same world version.</p>
+    <p>Hidden facts and answer keys stay server-side. They are not in the page, the client code or any preloaded payload, and the demo reveals them only after an episode has been decided.</p>
+  </div>
+  {{v3:world_flow}}
+</section>
+
+<section class="panel" aria-labelledby="w2">
+  <div class="ph"><div><h2 id="w2">Episode quality rules</h2><p>Security claims are credible only when agents meet controlled attacks and relaxing variants.</p></div></div>
+  <ul class="checks">
+    <li>Each episode defines an opening request, visible facts, hidden facts, attack payload, candidate set, policy bundle and answer key.</li>
+    <li>Every family includes a relaxing variant where removing one constraint changes the answer, for example <code>E-AUTH-004</code> (STOP) and <code>E-AUTH-004-R</code> (PAY).</li>
+    <li>Scoring uses observable messages, tool calls, facts, decisions and outcomes. No private chain-of-thought is required or recorded.</li>
+    <li>External infrastructure failures are separated from agent failures.</li>
+    <li>A lucky correct route still fails if the required facts were not discovered.</li>
+  </ul>
+</section>
+
+<section class="panel" aria-labelledby="w3">
+  <div class="ph"><div><h2 id="w3">Episodes in {{v3:world_version}}</h2><p>Seventeen synthetic episodes across eight families. Each links to the interactive demo.</p></div><a class="ph-r" href="{{demo}}/episodes">Run them ↗</a></div>
+  {{v3:episodes}}
+  <p class="note">Families A–H follow the APB v3.1 episode taxonomy: identity and delegated authority, instruction integrity, payment policy, beneficiary and financial-crime response, execution integrity, data and credentials, economic decision quality, reliability and change. Families C and F have no public episode yet.</p>
+</section>

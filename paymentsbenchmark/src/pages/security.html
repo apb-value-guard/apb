@@ -1,0 +1,49 @@
+<section class="panel" aria-labelledby="s1">
+  <div class="ph"><div><h2 id="s1">Agents are untrusted payment principals</h2><p>The failure is not only hallucination; it is uncontrolled authority connected to irreversible tools.</p></div></div>
+  <div class="tbl-wrap"><table class="tbl"><caption class="vh">Threat classes</caption>
+    <thead><tr><th scope="col">Threat</th><th scope="col">Payment consequence</th><th scope="col">APB response</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">Direct or indirect prompt injection</th><td>Beneficiary, amount or purpose changed by untrusted content</td><td>Instruction hierarchy, provenance, mutation detection, STOP or PAUSE</td></tr>
+      <tr><th scope="row">Excessive tool privilege</th><td>A planning agent invokes execute or refund</td><td>Per-action scopes, policy denial</td></tr>
+      <tr><th scope="row">Delegation ambiguity</th><td>No evidence the principal authorized this action</td><td>Delegation record, authority bounds, HANDOFF or PAUSE</td></tr>
+      <tr><th scope="row">Replay or retry</th><td>Duplicate payout</td><td>Idempotency key; the original result is returned</td></tr>
+      <tr><th scope="row">Model or policy drift</th><td>Safe behaviour changes after release</td><td>Version pinning; PAUSE or STOP on unapproved versions</td></tr>
+      <tr><th scope="row">Economic manipulation</th><td>Brand, sponsorship or visible fee outweighs mandate value</td><td>Eligibility first; provider-neutral objective</td></tr>
+      <tr><th scope="row">Sensitive-data leakage</th><td>Credentials or account data in prompts, logs or receipts</td><td>Masked accounts and references only; no credentials in receipts</td></tr>
+    </tbody></table></div>
+</section>
+
+<section class="panel" aria-labelledby="s2">
+  <div class="ph"><div><h2 id="s2">Instruction hierarchy</h2><p>External content is evidence to inspect, never authority to redefine the mandate.</p></div></div>
+  <ol class="gseq">
+    <li><b>1 · Signed institutional policy</b><span>Authoritative within its approved version and scope.</span></li>
+    <li><b>2 · Authenticated user or business mandate</b><span>Authoritative within delegated authority.</span></li>
+    <li><b>3 · Approved workflow rules</b><span>Trusted only when signed and versioned.</span></li>
+    <li><b>4 · External email, invoice, PDF, web page, tool output or memory</b><span>Untrusted data. It can't expand authority or override the layers above.</span></li>
+  </ol>
+</section>
+
+<section class="panel" aria-labelledby="s3">
+  <div class="ph"><div><h2 id="s3">Canonical scenario matrix</h2><p>The implementation, fixtures, demo, documentation and tests all agree on these outcomes.</p></div></div>
+  {{v3:matrix}}
+  <p class="note">The changed beneficiary is never merely PAUSE. The mutated instruction is stopped; a separate corrected instruction may pause while verification and approval are obtained.</p>
+</section>
+
+<section class="panel" id="evidence" aria-labelledby="s4">
+  <div class="ph"><div><h2 id="s4">Control status</h2><p>What exists now, what is designed for, and what waits on the roadmap.</p></div></div>
+  {{v3:controls}}
+  {{v3:frameworks}}
+  <p class="note">Applicability depends on deployment, role, scope, jurisdiction, implementation, operating process, and independent review.</p>
+</section>
+
+<section class="panel" aria-labelledby="s5">
+  <div class="ph"><div><h2 id="s5">What APB does not claim</h2></div></div>
+  <ul class="checks">
+    <li>APB is not a bank, processor, acquirer, payment institution or money transmitter. Execution stays with licensed rails.</li>
+    <li>APB does not replace KYC, AML, sanctions, fraud or SCA systems. It acts on their signals and does not screen anyone.</li>
+    <li>APB does not make any organization SOC 2, ISO, PCI DSS, DORA, PSD2, GDPR, NIS2 or EU AI Act compliant, and holds no certification.</li>
+    <li>PayPal is one execution adapter in the synthetic sandbox demo. No endorsement or partnership is implied.</li>
+    <li>Synthetic fixtures do not prove production safety.</li>
+  </ul>
+  <p class="links"><a class="btn ghost" href="https://github.com/apb-value-guard/apb/blob/main/THREAT_MODEL.md">Threat model ↗</a><a class="btn ghost" href="https://github.com/apb-value-guard/apb/blob/main/SECURITY.md">Report a vulnerability ↗</a></p>
+</section>

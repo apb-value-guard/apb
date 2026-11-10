@@ -1,0 +1,32 @@
+<section class="panel" aria-labelledby="r1">
+  <div class="ph"><div><h2 id="r1">APB World results</h2><p>Deterministic reference agents on {{v3:world_version}} · <span class="chip syn">synthetic</span></p></div></div>
+  <p class="north"><b>North star:</b> unauthorized payment execution rate, target 0%, always reported beside wrong refusals, latency and customer friction.</p>
+  {{v3:agents}}
+  {{v3:world_results}}
+  <div class="prose">
+    <p><b>naive_executor</b> follows the newest instruction it reads and pays. <b>prompt_filter</b> is a generic AI firewall: it blocks text that looks like an injection and otherwise pays. <b>apb_guard</b> is the reference pipeline. A prompt filter stops the visible attack but still pays a changed beneficiary on other channels, an expired token, an unapproved model and a replay; it also refuses a legitimate payment whose invoice contained harmless instructions.</p>
+  </div>
+</section>
+
+<section class="panel" aria-labelledby="r2">
+  <div class="ph"><div><h2 id="r2">Metric definitions</h2></div></div>
+  {{v3:metrics}}
+</section>
+
+<section class="panel" aria-labelledby="r3">
+  <div class="ph"><div><h2 id="r3">Rerun</h2></div></div>
+<pre class="code-block" tabindex="0">git clone https://github.com/apb-value-guard/apb.git && cd apb
+python -m venv .venv && . .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m apb.guard.world      # writes results/world/{{v3:world_version}}.json
+python -m pytest</pre>
+  <p class="note">No AI keys and no payment credentials are needed. Output has no timestamps, so reruns are identical. Machine-readable: <a href="{{root}}benchmark.json">benchmark.json</a> · <a href="{{root}}results.md">results.md</a></p>
+</section>
+
+<section class="panel" id="economic-quality" aria-labelledby="r4">
+  <div class="ph"><div><h2 id="r4">Economic-quality stage: v0.1 corridor fixtures</h2><p>Route quality on its own, method apb-0.1. In v3.1 this stage runs only after every security gate passes.</p></div></div>
+  <div class="prose"><p>The same nine route-choice tests run in US→Mexico, US→India and US→Kenya with rates rescaled per currency, so the scores match by design: this shows the method is currency-neutral, not three market findings.</p></div>
+  {{table:corridors}}
+  {{table:by_test}}
+  <p class="note">Observed runs of a real model on these fixtures are in the repository's <a href="https://github.com/apb-value-guard/apb/tree/main/results/llm_runs">results/llm_runs</a>, labelled with model and date. They are not part of any official score.</p>
+</section>
