@@ -277,6 +277,13 @@ Observed on `claude-sonnet-5-5`, 2026-11-07, 3 corridors, in a payee no-match te
 The prompts and every run's choice and reason are in [results/llm_runs/2026-11-07.json](results/llm_runs/2026-11-07.json).
 <!-- llm:end -->
 
+### Real agent with Value Guard
+
+The same model as `llm_agent`, with its route checked by Value Guard before commit and at commit. `python -m apb.benchmark --llm-guarded --runs 3`; see [docs/METHOD.md](docs/METHOD.md).
+
+<!-- guarded:start -->
+<!-- guarded:end -->
+
 ## How it works
 
 ![How it works: your sentence, AI reads the mandate, the code gate, code scores DVS, AI explains, then PayPal sandbox pays or a hand-off is logged](docs/img/how-it-works.svg)
@@ -284,7 +291,16 @@ The prompts and every run's choice and reason are in [results/llm_runs/2026-11-0
 1. **Stage 1, eligibility gate** (`apb/eligibility.py`): each route either passes or is excluded with a reason code.
 2. **Stage 2, scoring** (`apb/scoring.py`): the Delivered Value Score (DVS) scores eligible routes. Excluded routes are never scored.
 
-`apb/decide.py` then selects the eligible route with the highest recipient amount and returns a `DecisionReceipt`.
+`apb/decide.py` then selects the eligible route with the highest recipient amount and returns a `DecisionReceipt`. Every receipt carries `policy_version` (`apb-v0.1.0`) and a `decision`:
+
+| `decision` | When |
+|---|---|
+| `PAY` | PayPal is the best eligible route, and APB executes it (sandbox). |
+| `HAND_OFF` | Another provider's route is best. The decision is logged and the payment is made there. |
+| `PAUSE` | A payee close match needs the user's confirmation first. |
+| `STOP` | A screening hold, a payee mismatch, or no eligible route. Nothing is paid. |
+
+The decision is derived from the receipt's own fields, and a receipt whose `decision` contradicts them is rejected.
 
 ```text
 DVS = recipient amount of chosen route ÷ best eligible recipient amount × 100
@@ -394,6 +410,7 @@ curl -s https://apb-value-guard.onrender.com/v1/reason-codes
 ```
 
 - **Context.** Add `screening_result`, `payee_check` and `sender_verified_for` from your own providers, with `source: "caller_supplied"`. APB uses them and verifies none of them. `user_confirmed_payee` lets a close match proceed, and `user_approved_fee` approves a fee above the limit. A `no_match` always stops.
+- **Two decision fields.** The response's `decision` (`pay`, `pause`, `stop`) is what the caller should do now, and it includes fee approval and `user_confirmed_payee`. `receipt.decision` (`PAY`, `PAUSE`, `STOP`, `HAND_OFF`) is the receipt's record of the route decision.
 - **Recheck needs the mandate.** The receipt holds only `mandate_hash`, so send the same mandate and context, which are checked against it.
 - **Wallets.** Responses carry `recipient_wallet_ref`, a keyed hash, never the number. Validation errors don't echo submitted values.
 - **Limits.** 60 requests a minute per address, and bodies up to 64 KB.

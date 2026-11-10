@@ -11,6 +11,7 @@ from pydantic import (
     Field,
     PlainSerializer,
     PositiveInt,
+    model_validator,
 )
 
 
@@ -39,6 +40,32 @@ class ReasonCode(str, Enum):
     SCREENING_HOLD = "screening_hold"
     KYC_NOT_VERIFIED = "kyc_not_verified"
     PAYEE_MISMATCH = "payee_mismatch"
+
+
+# The policy every receipt is decided under. It changes when the rules do.
+POLICY_VERSION = "apb-v0.1.0"
+
+# The route APB executes itself. Any other selected route is handed off.
+PAYPAL = "paypal"
+
+Decision = Literal["PAY", "PAUSE", "STOP", "HAND_OFF"]
+
+
+def receipt_decision(
+    selected_route: str | None,
+    stop_reason: str | None,
+    confirmation_reason: str | None,
+) -> Decision:
+    """PAY or HAND_OFF the selected route, PAUSE for confirmation, or STOP.
+
+    HAND_OFF means the best route is another provider's: APB records the
+    decision and the payment is made there, not through PayPal.
+    """
+    if stop_reason or selected_route is None:
+        return "STOP"
+    if confirmation_reason:
+        return "PAUSE"
+    return "PAY" if selected_route == PAYPAL else "HAND_OFF"
 
 
 SCREENING_STOP_MESSAGE = "Payment stopped: screening hold (simulated)"
@@ -109,6 +136,10 @@ class ExcludedRoute(_Model):
 
 
 class DecisionReceipt(_Model):
+    policy_version: Literal["apb-v0.1.0"] = POLICY_VERSION
+    # Derived from the fields below when left out. A value that contradicts
+    # them is rejected, so a receipt can't say PAY next to a stop reason.
+    decision: Decision
     mandate_hash: str
     candidate_set: list[RouteQuote]
     excluded_routes: list[ExcludedRoute]
@@ -130,3 +161,20 @@ class DecisionReceipt(_Model):
     stop_reason: str | None = None
     payee_check: PayeeCheck | None = None
     confirmation_reason: str | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _derive_decision(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        derived = receipt_decision(
+            data.get("selected_route"),
+            data.get("stop_reason"),
+            data.get("confirmation_reason"),
+        )
+        given = data.get("decision")
+        if given is None:
+            return {**data, "decision": derived}
+        if given != derived:
+            raise ValueError(f"decision is {given}, but the receipt's fields say {derived}")
+        return data

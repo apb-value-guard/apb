@@ -192,6 +192,8 @@
   .v-pay { color: var(--green); background: #10332599; }
   .v-pause { color: var(--amber); background: #33280f99; }
   .v-stop { color: var(--red); background: #3a161a99; }
+  .v-handoff { color: var(--blue); background: #12283d99; }
+  .stage[data-state="handoff"] .dot { border-color: var(--blue); color: var(--blue); box-shadow: 0 0 16px #8cc8ff55; }
   .verdict-line { font-size: 19px; font-weight: 650; line-height: 1.35; }
   .verdict-sub { margin: 0; color: var(--muted); }
   .status { min-height: 1.5em; margin: 14px 0 0; color: var(--muted); }
@@ -673,11 +675,13 @@ function renderOutcome(data) {
   byId("verdict").replaceChildren(box);
 }
 
+// The receipt's own decision: PAY, PAUSE, STOP or HAND_OFF.
 function verdictOf(receipt) {
-  if (receipt.stop_reason) return { kind: "stop", word: "STOP", line: receipt.stop_reason };
-  if (receipt.confirmation_reason) return { kind: "pause", word: "PAUSE", line: receipt.confirmation_reason };
-  if (receipt.selected_route) return { kind: "pay", word: "PAY", line: `Selected route: ${receipt.selected_route}` };
-  return { kind: "stop", word: "STOP", line: "No route passed eligibility." };
+  const word = receipt.decision;
+  if (word === "STOP") return { kind: "stop", word, line: receipt.stop_reason || "No route passed eligibility." };
+  if (word === "PAUSE") return { kind: "pause", word, line: receipt.confirmation_reason };
+  if (word === "HAND_OFF") return { kind: "handoff", word, line: `Hand off to ${receipt.selected_route}` };
+  return { kind: "pay", word, line: `Pay with ${receipt.selected_route}` };
 }
 
 function screeningValue(screening) {
@@ -703,7 +707,9 @@ function verdictPanel(data) {
     ? "Nothing executes. Every route is excluded with a reason code."
     : receipt.confirmation_reason
       ? `Best route is ${receipt.selected_route}, but the sender must confirm before money moves.`
-      : "Best eligible route by what the recipient receives, inside the mandate.";
+      : receipt.decision === "HAND_OFF"
+        ? "Best eligible route is another provider's, so the payment is handed off there, not made through PayPal."
+        : "Best eligible route by what the recipient receives, inside the mandate.";
   return [
     el("h3", {}, "Decision"),
     el("span", { class: `verdict-word v-${verdict.kind}` }, verdict.word),
@@ -713,6 +719,7 @@ function verdictPanel(data) {
       el("b", {}, REQUEST_HEADINGS[request.source]),
       el("span", { class: "badge gold" }, SOURCE_BADGES[request.source])),
     el("dl", { class: "kv" },
+      el("dt", {}, "policy"), el("dd", {}, el("code", {}, receipt.policy_version)),
       el("dt", {}, "amount"), el("dd", {}, amount(request.currency, request.amount)),
       el("dt", {}, "payout"), el("dd", {}, request.payout_method),
       el("dt", {}, "wallet"), el("dd", {}, request.wallet),

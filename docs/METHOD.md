@@ -211,6 +211,32 @@ when no backend is available.
 With few runs and authored scenarios, treat these runs as an indication and not a
 measurement of the model.
 
+## llm_agent with Value Guard (observed)
+
+`python -m apb.benchmark --llm-guarded --runs 3` runs `llm_agent_guarded`: the
+same model, prompt and fixtures as `llm_agent`, in US→Kenya, with Value Guard
+around it.
+
+- **Before commit:** the model's chosen route goes through `POST /v1/check`.
+- **At commit:** the route about to be paid goes through `POST /v1/recheck`
+  against the commit-time quotes. A `re-decide` replaces it with Value Guard's
+  fresh decision.
+- **What overrides the model:** a `stop` (no payment), a `pause` (wait for the
+  user), or a route `/v1/check` excludes or didn't quote (Value Guard's route is
+  used instead). Nothing else: an eligible route the model prefers is kept even
+  when it delivers less, and the model's own STOP or PAUSE is kept.
+- **Follow-up:** if either agent paused, the user replies "Yes, that's her,
+  please pay." The model's answer goes through `/v1/check` again with
+  `user_confirmed_payee`. A `no_match` still stops, whatever the model says.
+- **Paired scoring:** each model answer is scored twice, as is (`llm_agent`) and
+  after the guard (`llm_agent_guarded`). A failure counts as prevented only when
+  the guard changed that very answer.
+- **Endpoints, not shortcuts:** the calls go to the real FastAPI routes in
+  process, through the same validation, body limit and rate limit as any client.
+
+Runs are saved to `results/llm_guarded_runs/<date>.json`, labelled observed, with
+the model, backend, date, policy version, prompts and every override.
+
 ## Adding an agent
 
 An agent is a function from a mandate and quotes to a provider, or `None`:

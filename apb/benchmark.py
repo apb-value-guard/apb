@@ -281,8 +281,19 @@ def main(argv: Sequence[str] | None = None) -> None:
         action="store_true",
         help="run llm_agent instead: an observed run, not the official score",
     )
+    parser.add_argument(
+        "--llm-guarded",
+        action="store_true",
+        help="run llm_agent and llm_agent_guarded side by side on US→Kenya: observed",
+    )
     parser.add_argument("--runs", type=int, default=3, help="runs per test with --llm")
     args = parser.parse_args(argv)
+
+    if args.llm_guarded:
+        from apb import llm_guarded
+
+        llm_guarded.main(args.runs)
+        return
 
     if args.llm:
         # Imported here because it builds on this module.
