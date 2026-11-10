@@ -14,7 +14,7 @@ TOKEN = "web-test-access-token"
 RECEIVER = "web-receiver@example.com"
 WALLET = "syn-mpesa-wallet-001"
 BATCH = "WEBBATCH123"
-FOOTER = "All quotes are synthetic. Payouts run in PayPal sandbox. No real money moves."
+FOOTER = "Synthetic fixtures · PayPal sandbox · No real money moves."
 
 
 class FakeResponse:
@@ -83,25 +83,42 @@ def test_page_loads_with_title_tabs_and_footer(client):
     response = client.get("/")
 
     assert response.status_code == 200
-    assert "<title>APB Value Guard, built on PayPal</title>" in response.text
+    assert "<title>APB Guard | Zero-Trust Controls for Agentic Payments</title>" in response.text
     assert FOOTER in response.text
     assert ">Decide<" in response.text and ">Benchmark<" in response.text
 
 
 def test_page_has_no_external_resources(client):
     text = client.get("/").text
+    script = client.get("/static/app.js").text
+    css = client.get("/static/app.css").text
 
-    # Links out are fine; nothing the page loads (scripts, styles, images,
-    # fonts) may come from another origin.
-    for loader in ('src="http', "src='http", "<link", "@import", "url(http"):
-        assert loader not in text
-    assert re.findall(r'href="(https?://[^"]+)"', text) == [
-        "https://github.com/apb-value-guard/apb"
+    # Scripts, styles and fonts come from this origin only. The one external
+    # media origin is paymentsbenchmark.com, which serves the demo video.
+    assert re.findall(r'<script[^>]+src="([^"]+)"', text) == ["/static/app.js"]
+    assert re.findall(r'<link[^>]+href="([^"]+)"', text) == ["/static/app.css"]
+    assert re.findall(r'src="(https?://[^"]+)"', text) == [
+        "https://paymentsbenchmark.com/media/APBv2.web.mp4"
     ]
+    for loader in ("@import", "url(http"):
+        assert loader not in css and loader not in text
+    assert "http://" not in script and "https://" not in script
 
 
 def test_page_never_injects_html(client):
     assert "innerHTML" not in client.get("/").text
+    assert "innerHTML" not in client.get("/static/app.js").text
+
+
+def test_security_headers(client):
+    response = client.get("/")
+    csp = response.headers["content-security-policy"]
+
+    assert "script-src 'self'" in csp and "'unsafe-inline'" not in csp
+    assert "frame-ancestors 'none'" in csp
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert response.headers["referrer-policy"] == "strict-origin-when-cross-origin"
+    assert "camera=()" in response.headers["permissions-policy"]
 
 
 def test_page_has_the_subtitle(client):
@@ -139,7 +156,8 @@ def test_api_docs_cover_only_the_check_api(client):
     assert client.get("/docs").status_code == 200
     paths = set(client.get("/openapi.json").json()["paths"])
 
-    assert paths == {"/v1/check", "/v1/recheck", "/v1/reason-codes"}
+    assert {"/v1/check", "/v1/recheck", "/v1/reason-codes"} <= paths
+    assert {p for p in paths if not p.startswith(("/v1/", "/api/v3/"))} == set()
 
 
 def test_foreign_host_is_refused():

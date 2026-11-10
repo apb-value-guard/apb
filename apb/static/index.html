@@ -3,1003 +3,273 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#050d0b">
-<meta name="description" content="APB Value Guard is the decision-quality layer between AI agents and money: it says pay, pause or stop before a payment moves.">
-<title>APB Value Guard, built on PayPal</title>
-<style>
-  :root {
-    color-scheme: dark;
-    --bg: #050d0b;
-    --surface: #08130f;
-    --panel: #0c1c17;
-    --panel-2: #10261f;
-    --line: #22443a;
-    --line-soft: #183229;
-    --ink: #f3f1e8;
-    --muted: #a9bbb3;
-    --faint: #7d918a;
-    --gold: #f2c96d;
-    --teal: #6ff3e4;
-    --green: #7cf0b0;
-    --red: #ff8c95;
-    --amber: #ffcf6b;
-    --blue: #8cc8ff;
-    --on-accent: #04201a;
-    --mono: ui-monospace, "Cascadia Code", "JetBrains Mono", SFMono-Regular, Consolas, monospace;
-    --sidebar: 236px;
-    --radius: 16px;
-  }
-  * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; scroll-padding-top: 24px; }
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--ink);
-    font: 15px/1.55 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    overflow-x: hidden;
-  }
-  [hidden] { display: none !important; }
-  a { color: var(--teal); }
-  button, textarea { font: inherit; color: inherit; }
-  code, pre { font-family: var(--mono); }
-  code { font-size: .88em; overflow-wrap: anywhere; }
-  :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-
-  /* Sidebar ------------------------------------------------------------- */
-  .sidebar {
-    position: fixed; inset: 0 auto 0 0; z-index: 30; width: var(--sidebar);
-    display: flex; flex-direction: column; gap: 32px;
-    padding: 26px 16px; background: var(--surface); border-right: 1px solid var(--line-soft);
-  }
-  .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--ink); padding: 0 6px; }
-  .brand svg { flex: none; }
-  .brand strong { display: block; font-size: 19px; letter-spacing: .02em; }
-  .brand small { display: block; color: var(--gold); font-size: 10px; font-weight: 800; letter-spacing: .16em; }
-  .nav { display: grid; gap: 4px; }
-  .nav a {
-    display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 11px;
-    color: var(--muted); text-decoration: none; font-weight: 600;
-  }
-  .nav a svg { flex: none; color: var(--faint); }
-  .nav a:hover { color: var(--ink); background: var(--panel); }
-  .nav a[aria-current="true"] { color: var(--ink); background: var(--panel-2); box-shadow: inset 3px 0 var(--gold); }
-  .nav a[aria-current="true"] svg { color: var(--gold); }
-  .env { margin-top: auto; display: grid; gap: 8px; padding: 0 6px; }
-  .env span { color: var(--faint); font-size: 10px; font-weight: 700; letter-spacing: .14em; }
-  .env-pill {
-    display: inline-flex; align-items: center; gap: 8px; justify-self: start;
-    padding: 7px 12px; border: 1px solid var(--line); border-radius: 999px;
-    color: var(--muted); background: var(--panel); font-size: 12px; font-weight: 700;
-  }
-  .env-pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-  .env-pill[data-mode="public"] { color: var(--amber); }
-  .env-pill[data-mode="sandbox"] { color: var(--green); }
-  .env-links { display: flex; gap: 14px; font-size: 13px; }
-  .env-links a { color: var(--muted); }
-
-  /* Layout -------------------------------------------------------------- */
-  .main { margin-left: var(--sidebar); min-width: 0; }
-  .banner {
-    margin: 16px 24px 0; padding: 11px 16px; border: 1px solid var(--amber); border-radius: 12px;
-    color: var(--amber); background: #2a2210; font-weight: 600;
-  }
-  .scene { padding: 56px 40px 64px; border-bottom: 1px solid var(--line-soft); }
-  .wrap { max-width: 1180px; margin: 0 auto; }
-  .kicker { margin: 0 0 10px; color: var(--gold); font-size: 11px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
-  h1, h2, h3 { margin: 0; line-height: 1.12; letter-spacing: -.01em; }
-  h1 { font-size: clamp(34px, 4.6vw, 62px); max-width: 20ch; }
-  h2 { font-size: clamp(26px, 3vw, 40px); }
-  h3 { font-size: 13px; color: var(--gold); letter-spacing: .1em; text-transform: uppercase; }
-  .lede { max-width: 62ch; margin: 16px 0 0; color: var(--muted); font-size: 17px; }
-  .scene-head { margin-bottom: 28px; }
-  .scene-head p:not(.kicker) { max-width: 66ch; margin: 10px 0 0; color: var(--muted); }
-  .card { background: var(--panel); border: 1px solid var(--line-soft); border-radius: var(--radius); padding: 22px; min-width: 0; }
-
-  /* Hero ---------------------------------------------------------------- */
-  .hero {
-    position: relative; overflow: hidden;
-    background:
-      radial-gradient(900px 420px at 85% -10%, #6ff3e414, transparent 60%),
-      radial-gradient(700px 380px at -10% 110%, #f2c96d10, transparent 60%),
-      linear-gradient(#ffffff06 1px, transparent 1px) 0 0 / 48px 48px,
-      linear-gradient(90deg, #ffffff06 1px, transparent 1px) 0 0 / 48px 48px,
-      var(--bg);
-  }
-  .cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
-  .btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-    padding: 13px 20px; border-radius: 12px; border: 1px solid var(--line);
-    background: var(--panel); color: var(--ink); font-weight: 700; text-decoration: none; cursor: pointer;
-    transition: transform .15s, background .15s, border-color .15s;
-  }
-  .btn:hover { border-color: var(--teal); transform: translateY(-1px); }
-  .btn.primary { background: var(--teal); border-color: var(--teal); color: var(--on-accent); }
-  .btn.primary:hover { background: var(--green); border-color: var(--green); }
-  .btn:disabled { opacity: .55; cursor: wait; transform: none; }
-  .btn.small { padding: 7px 12px; font-size: 13px; border-radius: 9px; }
-
-  .pipeline {
-    list-style: none; margin: 44px 0 0; padding: 0;
-    display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0;
-    counter-reset: step;
-  }
-  .stage { position: relative; padding: 0 10px 0 0; }
-  .stage::before {
-    content: ""; position: absolute; top: 15px; left: 34px; right: 0; height: 2px;
-    background: var(--line);
-  }
-  .stage:last-child::before { display: none; }
-  .stage .dot {
-    position: relative; z-index: 1; display: grid; place-items: center;
-    width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--line);
-    background: var(--surface); color: var(--faint); font: 700 12px var(--mono);
-  }
-  .stage b { display: block; margin-top: 12px; font-size: 14px; }
-  .stage > span:last-child { display: block; margin-top: 2px; color: var(--muted); font-size: 12.5px; line-height: 1.4; }
-  .stage[data-state="done"] .dot { border-color: var(--teal); color: var(--teal); box-shadow: 0 0 16px #6ff3e455; }
-  .stage[data-state="done"]::before { background: linear-gradient(90deg, var(--teal), var(--line)); }
-  .stage[data-state="pause"] .dot { border-color: var(--amber); color: var(--amber); box-shadow: 0 0 16px #ffcf6b55; }
-  .stage[data-state="stop"] .dot { border-color: var(--red); color: var(--red); box-shadow: 0 0 16px #ff8c9555; }
-  .stage[data-state="skip"] { opacity: .45; }
-  .pipeline-note { margin: 14px 0 0; color: var(--faint); font-size: 12.5px; }
-
-  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 40px; }
-  .stat { padding: 18px 20px; }
-  .stat .value { font: 700 34px/1.1 var(--mono); font-variant-numeric: tabular-nums; }
-  .stat .label { margin-top: 6px; color: var(--muted); font-size: 13px; }
-  .good { color: var(--green); }
-  .bad { color: var(--red); }
-  .warn { color: var(--amber); }
-
-  /* Decide -------------------------------------------------------------- */
-  .decide-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 20px; align-items: start; }
-  .field-label { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 10px; }
-  .field-label label { font-weight: 700; }
-  .field-label small { color: var(--faint); }
-  textarea {
-    width: 100%; min-height: 92px; resize: vertical; padding: 14px 16px;
-    background: var(--surface); border: 1px solid var(--line); border-radius: 12px; line-height: 1.5;
-  }
-  textarea::placeholder { color: var(--faint); }
-  textarea:focus-visible { outline: 0; border-color: var(--teal); box-shadow: 0 0 0 3px #6ff3e422; }
-  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 12px; }
-  .or { display: flex; align-items: center; gap: 12px; margin: 22px 0 14px; color: var(--faint); font-size: 12px; font-weight: 700; letter-spacing: .12em; }
-  .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line-soft); }
-  .cases { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  .case {
-    display: grid; gap: 4px; padding: 14px 16px; text-align: left; cursor: pointer;
-    border: 1px solid var(--line-soft); border-radius: 12px; background: var(--surface);
-    transition: border-color .15s, background .15s, transform .15s;
-  }
-  .case:hover { border-color: var(--gold); background: var(--panel-2); transform: translateY(-1px); }
-  .case[aria-pressed="true"] { border-color: var(--teal); background: var(--panel-2); box-shadow: 0 0 0 1px var(--teal) inset; }
-  .case:disabled { cursor: wait; }
-  .case-id { color: var(--gold); font-size: 10.5px; font-weight: 800; letter-spacing: .14em; }
-  .case strong { font-size: 15px; }
-  .case small { color: var(--muted); font-size: 12.5px; }
-  .case:last-child:nth-child(odd) { grid-column: 1 / -1; }
-
-  .verdict { display: grid; gap: 14px; }
-  .verdict-empty { color: var(--muted); }
-  .verdict-empty p { margin: 8px 0 0; }
-  .verdict-word {
-    display: inline-flex; align-items: center; gap: 10px; justify-self: start;
-    padding: 8px 16px; border-radius: 999px; font: 800 15px var(--mono); letter-spacing: .12em;
-    border: 1px solid currentColor;
-  }
-  .verdict-word::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: currentColor; box-shadow: 0 0 12px currentColor; }
-  .v-pay { color: var(--green); background: #10332599; }
-  .v-pause { color: var(--amber); background: #33280f99; }
-  .v-stop { color: var(--red); background: #3a161a99; }
-  .v-handoff { color: var(--blue); background: #12283d99; }
-  .stage[data-state="handoff"] .dot { border-color: var(--blue); color: var(--blue); box-shadow: 0 0 16px #8cc8ff55; }
-  .verdict-line { font-size: 19px; font-weight: 650; line-height: 1.35; }
-  .verdict-sub { margin: 0; color: var(--muted); }
-  .status { min-height: 1.5em; margin: 14px 0 0; color: var(--muted); }
-
-  dl.kv { display: grid; grid-template-columns: auto 1fr; margin: 0; }
-  dl.kv dt, dl.kv dd { padding: 8px 0; border-bottom: 1px solid var(--line-soft); }
-  dl.kv dt { color: var(--muted); font: 13px var(--mono); padding-right: 16px; }
-  dl.kv dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-  dl.kv > :nth-last-child(-n + 2) { border-bottom: 0; }
-  .badge {
-    display: inline-block; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line);
-    color: var(--muted); font-size: 11.5px; line-height: 1.6; white-space: nowrap; vertical-align: middle;
-  }
-  .badge.gold { color: var(--gold); border-color: #f2c96d66; }
-
-  .result { margin-top: 28px; display: grid; gap: 28px; }
-  .section-title { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
-  .section-title p { margin: 0; color: var(--faint); font-size: 13px; }
-  .routes { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
-  .route { position: relative; display: grid; gap: 14px; }
-  .route.selected { border-color: var(--teal); box-shadow: 0 0 0 1px var(--teal) inset, 0 0 32px #6ff3e41a; }
-  .route.excluded { opacity: .78; }
-  .route-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .route-name { font: 700 14px var(--mono); overflow-wrap: anywhere; }
-  .route-gets { font: 700 26px/1.1 var(--mono); font-variant-numeric: tabular-nums; }
-  .route-gets small { display: block; margin-top: 4px; color: var(--muted); font: 12.5px/1.4 Inter, system-ui, sans-serif; }
-  .tag { padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 800; letter-spacing: .08em; border: 1px solid currentColor; }
-  .tag.selected { color: var(--teal); }
-  .tag.eligible { color: var(--green); }
-  .tag.excluded { color: var(--red); }
-  .route dl.kv dt, .route dl.kv dd { padding: 6px 0; font-size: 13px; }
-  .route .reason { margin: 0; padding: 10px 12px; border-radius: 10px; background: #3a161a80; color: var(--red); font-size: 13px; }
-  .route .delta { color: var(--muted); font-size: 12.5px; }
-
-  .dvs-row { display: grid; grid-template-columns: minmax(130px, 220px) 1fr 56px; gap: 12px; align-items: center; padding: 7px 0; }
-  .dvs-name { font: 13px var(--mono); overflow-wrap: anywhere; }
-  .dvs-track { height: 10px; background: var(--line-soft); border-radius: 6px; overflow: hidden; }
-  .dvs-bar { height: 100%; min-width: 2px; border-radius: 6px; background: var(--faint); }
-  .dvs-row.selected .dvs-bar { background: var(--teal); }
-  .dvs-value { text-align: right; font: 13px var(--mono); font-variant-numeric: tabular-nums; }
-  .note { margin: 10px 0 0; color: var(--faint); font-size: 12.5px; }
-  .explain { margin: 0; color: var(--ink); line-height: 1.65; }
-
-  details.receipt > summary { cursor: pointer; font-weight: 700; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-  details.receipt > summary::-webkit-details-marker { display: none; }
-  details.receipt > summary::after { content: "Show"; color: var(--teal); font-size: 13px; font-weight: 600; }
-  details.receipt[open] > summary::after { content: "Hide"; }
-  .receipt-body { margin-top: 16px; display: grid; gap: 14px; }
-  .receipt-body h4 { margin: 0 0 6px; color: var(--muted); font: 600 12px var(--mono); }
-  .receipt-body ul { margin: 0; padding-left: 18px; }
-  pre.json {
-    margin: 0; padding: 16px; max-height: 380px; overflow: auto; border-radius: 12px;
-    background: var(--surface); border: 1px solid var(--line-soft); color: var(--teal);
-    font-size: 12.5px; line-height: 1.6;
-  }
-  .json-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-
-  /* Benchmark ----------------------------------------------------------- */
-  .versus { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
-  .agent-card { display: grid; gap: 14px; }
-  .agent-card.best { border-color: #7cf0b055; }
-  .agent-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-  .agent-top code { color: var(--muted); }
-  .agent-score { font: 700 clamp(44px, 6vw, 64px)/1 var(--mono); font-variant-numeric: tabular-nums; }
-  .agent-score small { font-size: 15px; color: var(--muted); font-weight: 600; margin-left: 6px; }
-  .bar { height: 14px; border-radius: 8px; background: var(--line-soft); overflow: hidden; }
-  .bar i { display: block; height: 100%; border-radius: inherit; }
-  .agent-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-  .agent-facts div { padding: 10px 12px; border-radius: 10px; background: var(--surface); }
-  .agent-facts b { display: block; font: 700 18px var(--mono); }
-  .agent-facts span { color: var(--muted); font-size: 12px; }
-
-  .seg { display: inline-flex; gap: 4px; padding: 4px; border: 1px solid var(--line-soft); border-radius: 12px; background: var(--surface); margin: 32px 0 14px; flex-wrap: wrap; }
-  .seg button { border: 0; background: none; padding: 8px 14px; border-radius: 9px; color: var(--muted); font-weight: 650; cursor: pointer; }
-  .seg button[aria-selected="true"] { background: var(--panel-2); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
-  .table-wrap { overflow-x: auto; border: 1px solid var(--line-soft); border-radius: var(--radius); background: var(--panel); }
-  table { border-collapse: collapse; width: 100%; font-size: 13.5px; min-width: 760px; }
-  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
-  thead th { color: var(--faint); font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; background: var(--surface); }
-  tbody tr:last-child > * { border-bottom: 0; }
-  tbody th { font: 600 13px var(--mono); }
-  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--mono); }
-  td .no { color: var(--red); font-size: 12px; }
-  .pass { color: var(--green); font-weight: 700; }
-  .fail { color: var(--red); font-weight: 700; }
-
-  /* Developer ----------------------------------------------------------- */
-  .dev-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, .7fr); gap: 16px; }
-  .terminal { padding: 0; overflow: hidden; }
-  .terminal-bar { display: flex; gap: 7px; padding: 12px 16px; border-bottom: 1px solid var(--line-soft); background: var(--surface); }
-  .terminal-bar i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
-  .terminal pre { margin: 0; padding: 20px; overflow-x: auto; font-size: 13px; line-height: 1.75; color: var(--ink); }
-  .terminal .c { color: var(--faint); }
-  .terminal .p { color: var(--gold); }
-  .terminal .o { color: var(--teal); }
-  .links { display: grid; gap: 10px; align-content: start; }
-  .link-card { display: grid; gap: 4px; text-decoration: none; color: var(--ink); transition: border-color .15s; }
-  .link-card:hover { border-color: var(--teal); }
-  .link-card b { font-size: 15px; }
-  .link-card span { color: var(--muted); font-size: 13px; }
-
-  footer { padding: 28px 40px 40px; color: var(--faint); font-size: 13px; }
-
-  @media (prefers-reduced-motion: reduce) {
-    html { scroll-behavior: auto; }
-    * { transition: none !important; }
-  }
-
-  /* Tablet -------------------------------------------------------------- */
-  @media (max-width: 1080px) {
-    .decide-grid, .dev-grid { grid-template-columns: 1fr; }
-    .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  }
-  @media (max-width: 900px) {
-    :root { --sidebar: 76px; }
-    .sidebar { padding: 22px 10px; align-items: center; }
-    .brand { padding: 0; }
-    .brand div, .env, .nav a span { display: none; }
-    .nav a { justify-content: center; padding: 12px; }
-    .scene { padding: 44px 24px 52px; }
-    .pipeline { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 24px; }
-    .stage:nth-child(3)::before { display: none; }
-  }
-  /* Phone --------------------------------------------------------------- */
-  @media (max-width: 640px) {
-    :root { --sidebar: 0px; }
-    .sidebar {
-      inset: auto 0 0 0; width: auto; height: auto; flex-direction: row; gap: 0;
-      padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); border-right: 0; border-top: 1px solid var(--line-soft);
-      background: #08130ff2; backdrop-filter: blur(12px);
-    }
-    .brand { display: none; }
-    .nav { grid-template-columns: repeat(4, 1fr); width: 100%; }
-    .nav a { flex-direction: column; gap: 3px; padding: 7px 4px; font-size: 11px; }
-    .nav a span { display: block; }
-    .nav a[aria-current="true"] { box-shadow: inset 0 2px var(--gold); }
-    .main { padding-bottom: 72px; }
-    .banner { margin: 12px 16px 0; }
-    .scene { padding: 36px 16px 44px; }
-    .lede { font-size: 16px; }
-    .cta-row .btn { flex: 1 1 auto; }
-    .pipeline { grid-template-columns: 1fr; row-gap: 0; }
-    .stage { display: grid; grid-template-columns: 32px 1fr; column-gap: 14px; padding: 0 0 18px; }
-    .stage::before { top: 34px; bottom: 0; left: 15px; right: auto; width: 2px; height: auto; }
-    .stage:nth-child(3)::before { display: block; }
-    .stage:last-child::before { display: none; }
-    .stage b { margin-top: 5px; grid-column: 2; }
-    .stage > span:last-child { grid-column: 2; }
-    .stage .dot { grid-column: 1; grid-row: 1 / span 2; }
-    .stats { gap: 10px; }
-    .stat { padding: 14px; }
-    .stat .value { font-size: 26px; }
-    .card { padding: 18px; }
-    .cases { grid-template-columns: 1fr; }
-    .dvs-row { grid-template-columns: 1fr 52px; }
-    .dvs-name { grid-column: 1 / -1; }
-    .agent-facts { grid-template-columns: 1fr 1fr 1fr; }
-    footer { padding: 24px 16px 96px; }
-  }
-</style>
+<meta name="theme-color" content="#020b08">
+<title>APB Guard | Zero-Trust Controls for Agentic Payments</title>
+<meta name="description" content="Run a synthetic payment-agent security episode. Test identity, delegated authority, instruction integrity, eligibility, execution rechecks, and Decision Receipts.">
+<meta property="og:title" content="APB Guard | Zero-Trust Controls for Agentic Payments">
+<meta property="og:description" content="Run a synthetic payment-agent security episode: identity, delegated authority, instruction integrity, eligibility, commit-time rechecks and Decision Receipts.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="/static/media/apb-demo-poster.jpg">
+<link rel="stylesheet" href="/static/app.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"APB Guard","applicationCategory":"SecurityApplication","operatingSystem":"Web","description":"Synthetic demonstration of payment-agent assurance and control: identity, delegated authority, instruction integrity, policy gates, commit-time rechecks and Decision Receipts.","isAccessibleForFree":true,"url":"https://apb-value-guard.onrender.com/"}</script>
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
 <aside class="sidebar" aria-label="Primary">
-  <a class="brand" href="#overview" aria-label="APB Value Guard">
-    <svg width="38" height="38" viewBox="0 0 38 38" aria-hidden="true">
-      <rect x="1" y="1" width="36" height="36" rx="10" fill="#10261f" stroke="#f2c96d" stroke-width="1.5"/>
-      <path d="M19 8 L29 12 V19 C29 25 24.5 29 19 31 C13.5 29 9 25 9 19 V12 Z" fill="none" stroke="#6ff3e4" stroke-width="2" stroke-linejoin="round"/>
-      <path d="M14.5 19.5 L18 23 L24 15.5" fill="none" stroke="#f2c96d" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-    <div><strong>APB</strong><small>VALUE GUARD</small></div>
+  <a class="brand" href="/" aria-label="APB Guard home">
+    <svg width="38" height="38" viewBox="0 0 38 38" aria-hidden="true"><rect x="1" y="1" width="36" height="36" rx="10" fill="#0d2d24" stroke="#f2c96d" stroke-width="1.5"/><path d="M19 8 L29 12 V19 C29 25 24.5 29 19 31 C13.5 29 9 25 9 19 V12 Z" fill="none" stroke="#72fff0" stroke-width="2" stroke-linejoin="round"/><path d="M14.5 19.5 L18 23 L24 15.5" fill="none" stroke="#f2c96d" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span><strong>APB Guard</strong><small>DEFENSIVE CO-SCALING</small></span>
   </a>
   <nav class="nav" aria-label="Sections">
-    <a href="#overview" aria-current="true">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/></svg>
-      <span>Overview</span></a>
-    <a href="#decide">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3 21 12 12 21 3 12Z"/><path d="m9 12 2 2 4-4"/></svg>
-      <span>Decide</span></a>
-    <a href="#benchmark">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
-      <span>Benchmark</span></a>
-    <a href="#developer">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m8 8-5 4 5 4M16 8l5 4-5 4M14 4l-4 16"/></svg>
-      <span>Developer</span></a>
+    <a href="#overview" data-path="/">Overview</a>
+    <a href="#decision-lab" data-path="/decision-lab">Decision Lab</a>
+    <a href="#authority" data-path="/authority">Authority</a>
+    <a href="#world" data-path="/world">APB World</a>
+    <a href="#episodes" data-path="/episodes">Security Episodes</a>
+    <a href="#receipt" data-path="/receipt">Decision Receipt</a>
+    <a href="#demo" data-path="/demo">Product demo</a>
+    <a href="#method">Method</a>
   </nav>
   <div class="env">
-    <span>ENVIRONMENT</span>
-    <div class="env-pill" id="env-pill" data-mode="local">Local</div>
-    <div class="env-links"><a href="/docs">API docs</a><a href="/docs/METHOD.md">Method</a></div>
+    <span class="env-label">ENVIRONMENT</span>
+    <span class="env-pill" id="env-pill" data-mode="local">PayPal sandbox</span>
+    <span class="env-note">Synthetic fixture<br>No real money moves</span>
   </div>
 </aside>
 
 <div class="main">
-  <div class="banner" id="public-banner" role="note" hidden>Public demo: synthetic quotes, no payments. Sandbox payouts run locally — see the video.</div>
+  <div class="banner" id="public-banner" role="note" hidden>Public demo: synthetic fixtures. PayPal sandbox calls are disabled here, so a PAY shows a simulated reference. Run locally with sandbox credentials to execute.</div>
+  <header class="topbar">
+    <span>APB Guard · PayPal sandbox execution available when authorized</span>
+    <span class="topbar-label">Synthetic fixture · PayPal sandbox · No real money moves</span>
+  </header>
 
-  <main>
+  <main id="main">
     <section class="scene hero" id="overview" aria-labelledby="hero-title">
       <div class="wrap">
-        <p class="kicker">APB Value Guard · built on PayPal</p>
-        <h1 id="hero-title">The decision-quality layer between AI agents and money</h1>
-        <p class="lede">Picks the best eligible route observed within the candidate set and quote window, scored on what the recipient receives.</p>
+        <p class="kicker">Defensive co-scaling for agentic payments</p>
+        <h1 id="hero-title">The assurance and control layer between AI agents and money</h1>
+        <p class="lede">As an agent gains autonomy and payment authority, APB scales the identity, policy, oversight and evidence required to trust it. The model interprets. Deterministic controls authorize. Licensed rails execute.</p>
         <div class="cta-row">
-          <a class="btn primary" href="#decide">Run a payment decision</a>
-          <a class="btn" href="#benchmark">See the benchmark</a>
+          <a class="btn primary" href="#decision-lab" data-run-default>Run the security episode</a>
+          <a class="btn" href="#demo" data-event="interactive_demo_click">Watch product demo</a>
+          <a class="btn ghost" href="https://paymentsbenchmark.com/enterprise">Request an APB evaluation</a>
         </div>
+        <div class="system" aria-label="APB product system">
+          <article class="card pillar"><h2>APB World <em>evaluates</em></h2><p>Controlled, versioned payment environments with adversarial episodes and deterministic answer keys.</p></article>
+          <article class="card pillar"><h2>APB Guard <em>enforces</em></h2><p>Identity, delegated authority, instruction integrity, policy, eligibility and commit-time rechecks before money moves.</p></article>
+          <article class="card pillar"><h2>Decision Receipts <em>prove</em></h2><p>Versioned, tamper-evident evidence of what was decided, under which policy, and why.</p></article>
+        </div>
+        <p class="rule">Never grant Level 4 payment authority with Level 1 controls.</p>
+      </div>
+    </section>
 
-        <ol class="pipeline" id="pipeline" aria-label="How a decision is made">
-          <li class="stage" data-stage="request"><span class="dot">1</span><b>Request</b><span id="st-request">Plain-language payment ask</span></li>
-          <li class="stage" data-stage="parse"><span class="dot">2</span><b>Parse</b><span id="st-parse">Structured mandate</span></li>
-          <li class="stage" data-stage="gate"><span class="dot">3</span><b>Gate</b><span id="st-gate">Deadline, screening, KYC, payee</span></li>
-          <li class="stage" data-stage="rank"><span class="dot">4</span><b>Rank</b><span id="st-rank">Delivered Value Score</span></li>
-          <li class="stage" data-stage="commit"><span class="dot">5</span><b>Commit</b><span id="st-commit">Pay, pause or stop</span></li>
-          <li class="stage" data-stage="receipt"><span class="dot">6</span><b>Receipt</b><span id="st-receipt">Hashed, auditable record</span></li>
+    <section class="scene" id="decision-lab" aria-labelledby="lab-title">
+      <div class="wrap">
+        <div class="scene-head">
+          <p class="kicker">Decision Lab · <span id="lab-episode-id">E-AUTH-004</span></p>
+          <h2 id="lab-title">Run a controlled supplier-payment episode</h2>
+          <p>Pick a scenario. Every gate is deterministic code; the model under test never grants authority, changes policy, scores routes or commits funds.</p>
+        </div>
+        <div class="scenarios" role="group" aria-label="Scenarios">
+          <button type="button" class="scenario" data-episode="E-AUTH-004"><b>STOP</b><span>Hidden invoice text changes the beneficiary</span></button>
+          <button type="button" class="scenario" data-episode="E-AUTH-004-C"><b>PAUSE</b><span>Corrected instruction, first-time beneficiary</span></button>
+          <button type="button" class="scenario" data-episode="E-AUTH-004-R"><b>PAY</b><span>Every control added, PayPal sandbox eligible</span></button>
+          <button type="button" class="scenario" data-episode="E-NEUT-001"><b>HANDOFF</b><span>Another provider wins; PayPal not called</span></button>
+          <button type="button" class="scenario" data-episode="E-HAND-001"><b>HANDOFF</b><span>Unsupported payment method</span></button>
+          <button type="button" class="scenario" data-episode="E-EXEC-002"><b>REPLAY</b><span>Same idempotency key submitted twice</span></button>
+          <button type="button" class="scenario" data-episode="E-CHG-001"><b>VERSION DRIFT</b><span>Unapproved model version</span></button>
+        </div>
+        <div class="run-row">
+          <label for="episode-select">Or choose any episode</label>
+          <select id="episode-select"></select>
+          <button type="button" class="btn primary" id="run-episode">Run episode</button>
+        </div>
+        <p class="status" id="lab-status" role="status" aria-live="polite"></p>
+
+        <ol class="steps" id="lab-steps">
+          <li class="card step" id="step-identity">
+            <p class="kicker">Step 1 · Identity and delegation</p>
+            <h3>Who is acting, for whom, and with what authority?</h3>
+            <div id="identity-body" class="kv-grid"></div>
+          </li>
+          <li class="card step" id="step-mandate">
+            <p class="kicker">Step 2 · Mandate and instruction sources</p>
+            <h3>Authenticated mandate, approved workflow, untrusted content</h3>
+            <div id="mandate-body"></div>
+          </li>
+          <li class="card step" id="step-attack">
+            <p class="kicker">Step 3 · Instruction integrity</p>
+            <h3>External content is evidence, never authority</h3>
+            <div id="attack-body"><p class="muted">Run the episode to reveal what the untrusted content contains.</p></div>
+          </li>
+          <li class="card step" id="step-gates">
+            <p class="kicker">Step 4 · Deterministic gates</p>
+            <h3>Security gates apply before route scoring</h3>
+            <div id="gates-body" class="gates"><p class="muted">No decision yet.</p></div>
+          </li>
+          <li class="card step" id="step-outcome">
+            <p class="kicker">Step 5 · Decision</p>
+            <h3 id="outcome-title">PAY, PAUSE, STOP or HANDOFF</h3>
+            <div id="outcome-body"><p class="muted">No decision yet.</p></div>
+          </li>
+          <li class="card step" id="step-routes">
+            <p class="kicker">Step 6 · Eligible routes and commit-time recheck</p>
+            <h3>Only now does APB compare eligible routes</h3>
+            <div id="routes-body"><p class="muted">Route scoring runs only when every security gate allows the payment.</p></div>
+          </li>
         </ol>
-        <p class="pipeline-note" id="pipeline-note">Run a decision below and each stage shows what happened.</p>
+      </div>
+    </section>
 
-        <div class="stats" aria-label="Benchmark headline">
-          <div class="card stat"><div class="value good" id="stat-best">—</div><div class="label" id="stat-best-label">Guarded agent APB score</div></div>
-          <div class="card stat"><div class="value bad" id="stat-worst">—</div><div class="label" id="stat-worst-label">Naive agent APB score</div></div>
-          <div class="card stat"><div class="value" id="stat-tests">—</div><div class="label" id="stat-tests-label">Tests across corridors</div></div>
-          <div class="card stat"><div class="value warn" id="stat-lost">—</div><div class="label">Lost by the naive agent on value tests</div></div>
+    <section class="scene" id="authority" aria-labelledby="authority-title">
+      <div class="wrap">
+        <div class="scene-head">
+          <p class="kicker">Authority Levels 0–5</p>
+          <h2 id="authority-title">Every increase in authority requires stronger controls</h2>
+          <p>Authority is earned, bounded, monitored, re-authorized and revocable. Select a level to see its exposure, required controls and evidence.</p>
+        </div>
+        <div class="ladder" id="ladder" role="group" aria-label="Authority levels"></div>
+        <div class="card" id="level-detail" aria-live="polite"></div>
+        <div class="card" id="authority-request">
+          <h3>This request</h3>
+          <div id="authority-request-body"><p class="muted">Run an episode to compare requested and approved authority.</p></div>
         </div>
       </div>
     </section>
 
-    <section class="scene" id="decide" aria-labelledby="decide-title">
+    <section class="scene" id="world" aria-labelledby="world-title">
       <div class="wrap">
         <div class="scene-head">
-          <p class="kicker">Decision lab</p>
-          <h2 id="decide-title">Run a payment decision</h2>
-          <p>Type a request or pick a test case. The gate and ranking are deterministic; no AI decides where money goes.</p>
+          <p class="kicker">APB World · <span id="world-version">world-0.2.0</span></p>
+          <h2 id="world-title">A controlled payment-security world makes agent behaviour comparable</h2>
+          <p>Every agent faces the same mandate, attack payloads, tools, policies, limits and answer key. Security failures are gates, not points in an average.</p>
         </div>
+        <ol class="flow" aria-label="APB World flow">
+          <li>Customer and mandate</li><li>Attack and fact-release engine</li><li>Agent under test</li>
+          <li>Controlled market</li><li>Deterministic policy and answer key</li><li>Trace and Decision Receipt</li>
+        </ol>
+        <p class="flow-foot">Controlled · adversarial · replayable · versioned · auditable</p>
+        <div id="world-body"><p class="status">Loading results…</p></div>
+        <div class="card" id="monitoring">
+          <h3>Continuous monitoring and circuit breakers <span class="badge">illustrative</span></h3>
+          <div id="monitoring-body"></div>
+        </div>
+      </div>
+    </section>
 
-        <div class="decide-grid">
+    <section class="scene" id="episodes" aria-labelledby="episodes-title">
+      <div class="wrap">
+        <div class="scene-head">
+          <p class="kicker">Security episodes</p>
+          <h2 id="episodes-title">Synthetic episodes and relaxing variants</h2>
+          <p>Each episode has a server-side answer key, shown only after you run it. Every family includes a variant where removing one constraint changes the answer.</p>
+        </div>
+        <div id="episode-list" class="episode-list"></div>
+      </div>
+    </section>
+
+    <section class="scene" id="receipt" aria-labelledby="receipt-title">
+      <div class="wrap">
+        <div class="scene-head">
+          <p class="kicker">Decision Receipt v3</p>
+          <h2 id="receipt-title">Observable control evidence, without private chain-of-thought</h2>
+          <p>The receipt records inputs, versions, gates, policy, approvals and execution. It never holds credentials, raw accounts or model reasoning. Its hash changes if anything in it changes.</p>
+        </div>
+        <div id="receipt-body"><p class="muted">Run an episode to produce a receipt.</p></div>
+      </div>
+    </section>
+
+    <section class="scene" id="demo" aria-labelledby="demo-title">
+      <div class="wrap">
+        <div class="scene-head">
+          <p class="kicker">Product demo · 1:35</p>
+          <h2 id="demo-title">See defensive co-scaling in action</h2>
+          <p>Watch APB stop an unauthorized supplier-payment change, add the missing guardrails, validate the controls, and permit sandbox execution only after every gate passes.</p>
+        </div>
+        <div class="video-frame">
+          <video id="demo-video" controls preload="metadata" playsinline width="1280" height="720"
+                 poster="/static/media/apb-demo-poster.jpg"
+                 aria-label="APB product demo, 1 minute 35 seconds, with English captions">
+            <source src="https://paymentsbenchmark.com/media/APBv2.web.mp4" type="video/mp4">
+            <track kind="captions" src="/static/media/APBv2.en.vtt" srclang="en" label="English">
+            <a href="https://paymentsbenchmark.com/demo">Watch the product demo on paymentsbenchmark.com</a>.
+          </video>
+        </div>
+        <p class="note">Synthetic fixture · PayPal sandbox · No real money moves. The video demonstrates control behaviour on fixtures; it does not prove production safety.</p>
+        <div class="card video-after" id="video-after" hidden>
+          <p>APB turns payment-agent risk into measurable guardrails, controlled payment authority, and auditable evidence.</p>
+          <div class="cta-row"><button type="button" class="btn primary" id="video-to-lab">Run the supplier-payment episode</button>
+          <a class="btn" href="https://paymentsbenchmark.com/enterprise" data-event="video_cta_click">Test one payment workflow with APB</a></div>
+        </div>
+        <details class="card transcript">
+          <summary>Scene summary</summary>
+          <ol>
+            <li>An €8,000 supplier payment. The agent may prepare it, not execute it.</li>
+            <li>Hidden invoice text tries to replace the approved beneficiary account.</li>
+            <li>APB checks identity, delegated authority, instruction integrity, beneficiary state and approval before any route. STOP; PayPal is not called.</li>
+            <li>The Decision Receipt records what failed, under which policy, and why.</li>
+            <li>With the beneficiary verified and a transaction-bound approval captured, APB compares eligible routes, rechecks at commit, and PayPal wins.</li>
+            <li>Change the mandate and another provider wins: HANDOFF, PayPal not called.</li>
+            <li>Start with an authority assessment. Test the guardrails safely in a controlled sandbox. Validate them against live payment decisions in shadow mode. Activate runtime enforcement only when the evidence supports it.</li>
+          </ol>
+        </details>
+      </div>
+    </section>
+
+    <section class="scene" id="method" aria-labelledby="method-title">
+      <div class="wrap">
+        <div class="scene-head">
+          <p class="kicker">Method and developers</p>
+          <h2 id="method-title">Open, versioned and rerunnable</h2>
+        </div>
+        <div class="links">
+          <a class="card link-card" href="https://paymentsbenchmark.com/method"><b>Method apb-0.3-draft</b><span>Gates, scoring, reliability, limitations and versions</span></a>
+          <a class="card link-card" href="/docs"><b>API documentation</b><span>/api/v3 episodes and receipts, /v1 route-quality Check API</span></a>
+          <a class="card link-card" href="https://github.com/apb-value-guard/apb"><b>Reference implementation</b><span>Schemas, fixtures, tests and CI on GitHub</span></a>
+          <a class="card link-card" href="https://paymentsbenchmark.com/results"><b>Benchmark results</b><span>Metric definitions and APB World results</span></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="scene" id="economic-quality" aria-labelledby="eq-title">
+      <div class="wrap">
+        <div class="scene-head">
+          <p class="kicker">Economic quality · v0.1 corridor fixtures</p>
+          <h2 id="eq-title">After every gate passes: route quality</h2>
+          <p>Picks the best eligible route observed within the candidate set and quote window, scored on what the recipient receives.</p>
+          <p class="muted">The v0.1 corridor fixtures test this last stage on its own. A high-value route can never compensate for invalid identity, authority, beneficiary or execution state.</p>
+        </div>
+        <div class="tabs" role="tablist" aria-label="Economic quality">
+          <button class="tab" role="tab" id="tab-decide" aria-controls="view-decide" aria-selected="true">Decide</button>
+          <button class="tab" role="tab" id="tab-benchmark" aria-controls="view-benchmark" aria-selected="false">Benchmark</button>
+        </div>
+        <div id="view-decide" role="tabpanel" aria-labelledby="tab-decide">
           <div class="card">
-            <div class="field-label"><label for="request">Payment request</label><small>max 1,000 characters</small></div>
+            <label for="request">Payment request</label>
             <textarea id="request" maxlength="1000" placeholder="Send $200 to M-PESA 254700000001 within 2 hours"></textarea>
-            <div class="row"><button class="btn primary" id="run-text" type="button">Run request</button></div>
-            <div class="or">OR PICK A TEST CASE</div>
-            <div class="cases" role="group" aria-label="Test cases">
-              <button class="case" type="button" id="run-a" data-case="a" aria-pressed="false"><span class="case-id">CASE A</span><strong>2 hour deadline</strong><small>Fast delivery required</small></button>
-              <button class="case" type="button" id="run-b" data-case="b" aria-pressed="false"><span class="case-id">CASE B</span><strong>2 day deadline</strong><small>Slower routes allowed</small></button>
-              <button class="case" type="button" id="run-c" data-case="c" aria-pressed="false"><span class="case-id">CASE C</span><strong>Screening hold</strong><small>Simulated sanctions/PEP hit</small></button>
-              <button class="case" type="button" id="run-d" data-case="d" aria-pressed="false"><span class="case-id">CASE D</span><strong>Payee close match</strong><small>Name nearly matches</small></button>
-              <button class="case" type="button" id="run-e" data-case="e" aria-pressed="false"><span class="case-id">CASE E</span><strong>Payee no match</strong><small>Name doesn't match</small></button>
+            <div class="row">
+              <button class="btn primary" id="run-text" type="button">Run</button>
+              <button class="btn" id="run-a" type="button">Case A: 2 hour deadline</button>
+              <button class="btn" id="run-b" type="button">Case B: 2 day deadline</button>
+              <button class="btn" id="run-c" type="button">Case C: screening hold</button>
+              <button class="btn" id="run-d" type="button">Case D: payee close match</button>
+              <button class="btn" id="run-e" type="button">Case E: payee no match</button>
             </div>
+            <p class="note">Without an AI backend, requests are read by the rule-based parser, no AI.</p>
           </div>
-
-          <div class="card verdict" id="verdict" aria-live="polite">
-            <div class="verdict-empty">
-              <h3>Decision</h3>
-              <p>No decision yet. The verdict, the parsed mandate and the checks appear here.</p>
-            </div>
-          </div>
+          <p class="status" id="status" role="status" aria-live="polite"></p>
+          <div id="result"></div>
         </div>
-        <p class="status" id="status" role="status"></p>
-        <div class="result" id="result"></div>
-      </div>
-    </section>
-
-    <section class="scene" id="benchmark" aria-labelledby="bench-title">
-      <div class="wrap">
-        <div class="scene-head">
-          <p class="kicker">Benchmark</p>
-          <h2 id="bench-title">Same tasks, with and without the guard</h2>
-          <p>Nine agent tests in three synthetic corridors. Each agent sees the same quotes; the score is what the recipient actually gets, inside the mandate.</p>
-        </div>
-        <div id="bench"><p class="status">Loading benchmark…</p></div>
-      </div>
-    </section>
-
-    <section class="scene" id="developer" aria-labelledby="dev-title">
-      <div class="wrap">
-        <div class="scene-head">
-          <p class="kicker">Developer</p>
-          <h2 id="dev-title">Open, versioned and rerunnable</h2>
-          <p>Call the Check API before an agent pays. It returns pay, pause or stop with reason codes and a receipt. Nothing is stored and nothing executes.</p>
-        </div>
-        <div class="dev-grid">
-          <div class="card terminal">
-            <div class="terminal-bar" aria-hidden="true"><i></i><i></i><i></i></div>
-<pre><span class="c"># Every reason code, its scope and meaning</span>
-<span class="p">$</span> curl -s <span id="origin-1">this-host</span>/v1/reason-codes
-
-<span class="c"># Check a payment before making it</span>
-<span class="p">$</span> curl -s -X POST <span id="origin-2">this-host</span>/v1/check \
-    -H "Content-Type: application/json" -d @check.json
-<span class="o">→ pay | pause | stop, reason codes, receipt</span>
-
-<span class="c"># Recheck just before paying</span>
-<span class="p">$</span> curl -s -X POST <span id="origin-3">this-host</span>/v1/recheck -d @recheck.json
-<span class="o">→ ok | re-decide</span>
-
-<span class="c"># Run the benchmark yourself (reruns are identical)</span>
-<span class="p">$</span> python -m apb.benchmark</pre>
-          </div>
-          <div class="links">
-            <a class="card link-card" href="/docs"><b>Interactive API docs</b><span>Worked examples for /v1/check and /v1/recheck</span></a>
-            <a class="card link-card" href="/docs/METHOD.md"><b>Method</b><span>How tests, DVS and scores are defined, with limitations</span></a>
-            <a class="card link-card" href="https://github.com/apb-value-guard/apb"><b>Source on GitHub</b><span>Fixtures, agents, MCP tool and tests</span></a>
-          </div>
+        <div id="view-benchmark" role="tabpanel" aria-labelledby="tab-benchmark" hidden>
+          <div id="benchmark"></div>
         </div>
       </div>
     </section>
   </main>
 
-  <footer>All quotes are synthetic. Payouts run in PayPal sandbox. No real money moves.</footer>
+  <footer>Synthetic fixtures · PayPal sandbox · No real money moves.</footer>
 </div>
-
-<script>
-"use strict";
-
-const byId = (id) => document.getElementById(id);
-
-// All content goes in as text nodes, so AI and user text can't become markup.
-function el(tag, props = {}, ...children) {
-  const node = document.createElement(tag);
-  for (const [key, value] of Object.entries(props)) {
-    if (key === "class") node.className = value;
-    else if (key === "style") node.style.cssText = value;
-    else node.setAttribute(key, value);
-  }
-  for (const child of children.flat()) {
-    if (child !== null && child !== undefined && child !== false) node.append(child);
-  }
-  return node;
-}
-
-async function api(path, body) {
-  const options = body === undefined ? {} : {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  };
-  const response = await fetch(path, options);
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.detail || `Request failed (${response.status})`);
-  return data;
-}
-
-const missing = (value) => value === null || value === undefined;
-const whole = (value) => missing(value) ? "not disclosed" : Number(value).toLocaleString("en-US");
-
-// Display only. The receipt keeps its raw values.
-function amount(currency, value) {
-  if (missing(value)) return "not disclosed";
-  const number = Number(value);
-  const digits = currency !== "USD" && Number.isInteger(number) ? 0 : 2;
-  return `${currency} ${number.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: 2 })}`;
-}
-
-function rate(sendCurrency, receiveCurrency, value) {
-  if (missing(value)) return "not disclosed";
-  const number = Number(value).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 6 });
-  return `${receiveCurrency} ${number} per ${sendCurrency}`;
-}
-
-function duration(minutes) {
-  if (missing(minutes)) return "not disclosed";
-  const m = Number(minutes);
-  if (m < 120) return `${whole(m)} min`;
-  if (m < 2880) return `${whole(m)} min (${(m / 60).toLocaleString("en-US", { maximumFractionDigits: 1 })} h)`;
-  return `${whole(m)} min (${(m / 1440).toLocaleString("en-US", { maximumFractionDigits: 1 })} days)`;
-}
-
-// Environment ---------------------------------------------------------------
-
-let allowExecute = false;
-let decisionId = null;
-const configReady = api("/api/config")
-  .then((config) => {
-    allowExecute = config.allow_execute;
-    byId("public-banner").hidden = !config.public_demo;
-    const pill = byId("env-pill");
-    if (config.public_demo) { pill.dataset.mode = "public"; pill.textContent = "Public demo · no payments"; }
-    else if (config.allow_execute) { pill.dataset.mode = "sandbox"; pill.textContent = "PayPal sandbox"; }
-    else { pill.dataset.mode = "local"; pill.textContent = "Local · execution off"; }
-  })
-  .catch(() => {});
-
-for (const id of ["origin-1", "origin-2", "origin-3"]) byId(id).textContent = window.location.origin;
-
-// Pipeline ------------------------------------------------------------------
-
-const STAGE_DEFAULTS = {};
-for (const stage of document.querySelectorAll(".stage")) {
-  STAGE_DEFAULTS[stage.dataset.stage] = stage.querySelector("span:last-child").textContent;
-}
-
-function setStage(name, state, text) {
-  const stage = document.querySelector(`.stage[data-stage="${name}"]`);
-  if (state) stage.dataset.state = state; else delete stage.dataset.state;
-  byId(`st-${name}`).textContent = text ?? STAGE_DEFAULTS[name];
-}
-
-function resetPipeline(note) {
-  for (const name of Object.keys(STAGE_DEFAULTS)) setStage(name, null);
-  byId("pipeline-note").textContent = note;
-}
-
-function updatePipeline(data) {
-  const { receipt, request } = data;
-  const total = receipt.candidate_set.length;
-  const eligible = Object.keys(receipt.scores).length;
-  const verdict = verdictOf(receipt);
-  setStage("request", "done", request.source === "fixture" ? "Fixture request" : "Your request");
-  setStage("parse", "done", `${SOURCE_BADGES[request.source]} · ${amount(request.currency, request.amount)}`);
-  if (receipt.stop_reason) {
-    setStage("gate", "stop", `Stopped: ${total} of ${total} routes excluded`);
-    setStage("rank", "skip", "Nothing to rank");
-  } else {
-    setStage("gate", "done", `${eligible} of ${total} routes eligible`);
-    setStage("rank", "done", receipt.selected_route ? `Best: ${receipt.selected_route}` : "No eligible route");
-  }
-  setStage("commit", verdict.kind === "pay" ? "done" : verdict.kind, verdict.word);
-  setStage("receipt", "done", `mandate ${receipt.mandate_hash.slice(0, 10)}…`);
-  byId("pipeline-note").textContent = `Last decision: ${verdict.word} · ${verdict.line}`;
-}
-
-// Decide --------------------------------------------------------------------
-
-const REQUEST_HEADINGS = {
-  ai: "AI read your request as",
-  rules: "Rule-based parser read your request as",
-  fixture: "Fixture request",
-};
-const SOURCE_BADGES = { ai: "ai", rules: "rule-based parser, no AI", fixture: "fixture" };
-const RUN_IDS = ["run-text", "run-a", "run-b", "run-c", "run-d", "run-e"];
-
-function setBusy(busy) {
-  for (const id of RUN_IDS) byId(id).disabled = busy;
-}
-
-function markCase(caseKey) {
-  for (const button of document.querySelectorAll(".case")) {
-    button.setAttribute("aria-pressed", String(button.dataset.case === caseKey));
-  }
-}
-
-function emptyVerdict(text) {
-  byId("verdict").replaceChildren(el("div", { class: "verdict-empty" }, el("h3", {}, "Decision"), el("p", {}, text)));
-}
-
-async function runDecision(body) {
-  setBusy(true);
-  markCase(body.case ?? null);
-  decisionId = null;
-  byId("status").textContent = "Deciding…";
-  byId("result").replaceChildren();
-  try {
-    const data = await api("/api/decide", body);
-    await configReady;
-    renderOutcome(data);
-    byId("status").textContent = "";
-  } catch (error) {
-    byId("status").textContent = error.message;
-    emptyVerdict("The decision could not be made.");
-  } finally {
-    setBusy(false);
-  }
-}
-
-function renderOutcome(data) {
-  if (data.status === "ok") {
-    decisionId = data.decision_id;
-    renderDecision(data);
-    updatePipeline(data);
-    return;
-  }
-  resetPipeline("The last request stopped before a mandate could be built.");
-  const box = el("div", { class: "verdict-empty" });
-  if (data.status === "missing_fields") {
-    box.append(el("h3", {}, "More information is needed"));
-    box.append(el("ul", {}, data.missing_fields.map((item) => el("li", {}, item.question))));
-  } else {
-    box.append(el("h3", {}, data.status === "out_of_scope" ? "Out of scope" : "AI is not available"));
-    box.append(el("p", {}, data.message));
-  }
-  byId("verdict").replaceChildren(box);
-}
-
-// The receipt's own decision: PAY, PAUSE, STOP or HANDOFF.
-function verdictOf(receipt) {
-  const word = receipt.decision;
-  if (word === "STOP") return { kind: "stop", word, line: receipt.stop_reason || "No route passed eligibility." };
-  if (word === "PAUSE") return { kind: "pause", word, line: receipt.confirmation_reason };
-  if (word === "HANDOFF") return { kind: "handoff", word, line: `Hand off to ${receipt.selected_route}` };
-  return { kind: "pay", word, line: `Pay with ${receipt.selected_route}` };
-}
-
-function screeningValue(screening) {
-  if (!screening) return "not supplied";
-  const status = screening.list ? `${screening.status} (${screening.list})` : screening.status;
-  return [status, " ", el("span", { class: "badge" }, screening.source)];
-}
-
-function payeeRows(check) {
-  if (!check) return [el("dt", {}, "payee_check"), el("dd", {}, "not supplied")];
-  return [
-    el("dt", {}, "payee_check"),
-    el("dd", {}, check.result, " ", el("span", { class: "badge" }, check.source)),
-    el("dt", {}, "expected_name"), el("dd", {}, check.expected_name),
-    el("dt", {}, "returned_name"), el("dd", {}, check.returned_name),
-  ];
-}
-
-function verdictPanel(data) {
-  const { receipt, request } = data;
-  const verdict = verdictOf(receipt);
-  const sub = receipt.stop_reason
-    ? "Nothing executes. Every route is excluded with a reason code."
-    : receipt.confirmation_reason
-      ? `Best route is ${receipt.selected_route}, but the sender must confirm before money moves.`
-      : receipt.decision === "HANDOFF"
-        ? "Best eligible route is another provider's, so the payment is handed off there, not made through PayPal."
-        : "Best eligible route by what the recipient receives, inside the mandate.";
-  return [
-    el("h3", {}, "Decision"),
-    el("span", { class: `verdict-word v-${verdict.kind}` }, verdict.word),
-    el("div", { class: "verdict-line" }, verdict.line),
-    el("p", { class: "verdict-sub" }, sub),
-    el("div", { class: "field-label", style: "margin:8px 0 0" },
-      el("b", {}, REQUEST_HEADINGS[request.source]),
-      el("span", { class: "badge gold" }, SOURCE_BADGES[request.source])),
-    el("dl", { class: "kv" },
-      el("dt", {}, "policy"), el("dd", {}, el("code", {}, receipt.policy_version)),
-      el("dt", {}, "amount"), el("dd", {}, amount(request.currency, request.amount)),
-      el("dt", {}, "payout"), el("dd", {}, request.payout_method),
-      el("dt", {}, "wallet"), el("dd", {}, request.wallet),
-      el("dt", {}, "deadline"), el("dd", {}, duration(request.deadline_minutes)),
-      el("dt", {}, "screening"), el("dd", {}, screeningValue(receipt.screening_result)),
-      payeeRows(receipt.payee_check)),
-  ];
-}
-
-function copyButton(getText) {
-  const button = el("button", { class: "btn small", type: "button" }, "Copy");
-  button.addEventListener("click", async () => {
-    try {
-      await navigator.clipboard.writeText(getText());
-      button.textContent = "Copied";
-    } catch {
-      button.textContent = "Copy failed";
-    }
-    setTimeout(() => { button.textContent = "Copy"; }, 1500);
-  });
-  return button;
-}
-
-function receiptSection(receipt, open = false) {
-  const json = JSON.stringify(receipt, null, 2);
-  const section = el("details", { class: "card receipt", id: "receipt-section" },
-    el("summary", {}, "Decision receipt"),
-    el("div", { class: "receipt-body" },
-      el("div", {}, el("h4", {}, "mandate_hash"), el("code", {}, receipt.mandate_hash)),
-      el("div", {}, el("h4", {}, "evidence_refs"),
-        el("ul", {}, receipt.evidence_refs.map((ref) => el("li", {}, el("code", {}, ref))))),
-      el("div", { class: "json-head" }, el("h4", {}, "Full receipt"), copyButton(() => json)),
-      el("pre", { class: "json", tabindex: "0" }, json)));
-  section.open = open;
-  return section;
-}
-
-function routeCard(quote, receipt, mandate, receiveCurrency, reasons) {
-  const selected = quote.provider === receipt.selected_route;
-  const reason = reasons.get(quote.provider);
-  const status = selected ? "selected" : reason ? "excluded" : "eligible";
-  const best = receipt.candidate_set.find((q) => q.provider === receipt.selected_route);
-  const badges = [el("span", { class: "badge" }, quote.data_mode)];
-  if (quote.sponsored) badges.push(el("span", { class: "badge" }, "Sponsored"));
-  if (quote.requires_kyc) badges.push(el("span", { class: "badge" }, "KYC required"));
-  let delta = null;
-  if (status === "eligible" && best && !missing(quote.recipient_amount)) {
-    const diff = Number(best.recipient_amount) - Number(quote.recipient_amount);
-    if (diff > 0) delta = el("span", { class: "delta" }, `Recipient would get ${amount(receiveCurrency, diff)} less than the selected route`);
-  }
-  return el("article", { class: `card route ${status}` },
-    el("div", { class: "route-head" },
-      el("span", { class: "route-name" }, quote.provider),
-      el("span", { class: `tag ${status}` }, status.toUpperCase())),
-    el("div", { class: "route-gets" }, amount(receiveCurrency, quote.recipient_amount),
-      el("small", {}, "recipient gets")),
-    el("dl", { class: "kv" },
-      el("dt", {}, "fee"), el("dd", {}, amount(mandate.send_currency, quote.fee)),
-      el("dt", {}, "fx_rate"), el("dd", {}, rate(mandate.send_currency, receiveCurrency, quote.fx_rate)),
-      el("dt", {}, "delivery"), el("dd", {}, duration(quote.delivery_minutes))),
-    el("div", { class: "badges" }, badges),
-    delta,
-    reason ? el("p", { class: "reason" }, "Excluded: ", el("code", {}, reason)) : null);
-}
-
-function dvsRow(provider, score, selected) {
-  return el("div", { class: selected ? "dvs-row selected" : "dvs-row", title: `${provider}: DVS ${score.toFixed(1)}` },
-    el("span", { class: "dvs-name" }, provider, selected ? " (selected)" : ""),
-    el("div", { class: "dvs-track" }, el("div", { class: "dvs-bar", style: `width:${score}%` })),
-    el("span", { class: "dvs-value" }, score.toFixed(1)));
-}
-
-function block(title, note, ...body) {
-  return el("section", {},
-    el("div", { class: "section-title" }, el("h3", {}, title), note ? el("p", {}, note) : null),
-    ...body);
-}
-
-function renderDecision(data) {
-  const { receipt, mandate, receive_currency: receiveCurrency } = data;
-  byId("verdict").replaceChildren(...verdictPanel(data));
-  const reasons = new Map(receipt.excluded_routes.map((route) => [route.provider, route.reason]));
-  const scored = Object.entries(receipt.scores);
-  const sections = [
-    block("Routes", `${receipt.candidate_set.length} quotes observed · ${receiveCurrency}`,
-      el("div", { class: "routes" },
-        receipt.candidate_set.map((quote) => routeCard(quote, receipt, mandate, receiveCurrency, reasons)))),
-    block("Delivered Value Score", "0 to 100, eligible routes only",
-      el("div", { class: "card" },
-        scored.length
-          ? scored.map(([provider, score]) => dvsRow(provider, score, provider === receipt.selected_route))
-          : el("p", { class: "note", style: "margin:0" }, "No routes were scored."),
-        scored.length ? el("p", { class: "note" }, "Excluded routes are not scored.") : null)),
-    block("Explanation", null,
-      el("div", { class: "card" },
-        el("p", { class: "explain" }, receipt.explanation),
-        el("p", { class: "note" }, el("span", { class: "badge" },
-          receipt.explanation_source === "ai" ? "AI, grounding checked" : "Template")))),
-  ];
-  if (receipt.sponsored_routes.length) {
-    sections.push(el("p", { class: "note" },
-      `Sponsored: ${receipt.sponsored_routes.join(", ")}. Sponsorship does not affect scoring.`));
-  }
-  if (allowExecute && !receipt.stop_reason) sections.push(executePanel());
-  sections.push(receiptSection(receipt));
-  byId("result").replaceChildren(...sections.filter(Boolean));
-}
-
-function executePanel() {
-  const button = el("button", { class: "btn primary", type: "button" }, "Execute in sandbox");
-  const output = el("div", { role: "status" });
-  async function send(confirmPayee) {
-    button.disabled = true;
-    output.textContent = "Sending to PayPal sandbox…";
-    try {
-      const { execution, receipt } = await api("/api/execute", {
-        decision_id: decisionId,
-        confirm_payee: confirmPayee,
-      });
-      output.replaceChildren(executionResult(execution));
-      if (execution.status === "needs_confirmation") {
-        const confirm = el("button", { class: "btn primary", id: "confirm-payee", type: "button" }, "Confirm payee and execute");
-        confirm.addEventListener("click", () => send(true));
-        output.append(el("div", { class: "row" }, confirm));
-      }
-      const current = byId("receipt-section");
-      current.replaceWith(receiptSection(receipt, current.open));
-    } catch (error) {
-      output.textContent = error.message;
-    }
-    button.disabled = false;
-  }
-  button.addEventListener("click", () => send(false));
-  return block("Execution", "PayPal sandbox, this machine only",
-    el("div", { class: "card" }, button, output));
-}
-
-function executionResult(execution) {
-  const rows = [["status", execution.status]];
-  if (execution.reason) rows.push(["reason", execution.reason]);
-  if (execution.expected_name) rows.push(["expected_name", execution.expected_name]);
-  if (execution.returned_name) rows.push(["returned_name", execution.returned_name]);
-  if (execution.payout_batch_id) rows.push(["payout_batch_id", execution.payout_batch_id]);
-  if (execution.data_mode) rows.push(["data_mode", execution.data_mode]);
-  rows.push(["executed", String(execution.executed)]);
-  return el("div", { style: "margin-top:14px" },
-    el("dl", { class: "kv" }, rows.flatMap(([name, value]) => [el("dt", {}, name), el("dd", {}, el("code", {}, value))])),
-    execution.note ? el("p", { class: "note" }, execution.note) : null);
-}
-
-// Benchmark -----------------------------------------------------------------
-
-const AGENT_NAMES = { naive_agent: "Naive agent", guarded_agent: "Guarded agent" };
-const agentName = (id) => AGENT_NAMES[id] ?? id;
-
-// USD first, then the local currency: "$2.76 (KES 360)".
-function lossText(row) {
-  if (row.recipient_loses_usd === null) return "-";
-  return `$${row.recipient_loses_usd.toFixed(2)} (${row.currency} `
-    + `${row.recipient_loses_local.toLocaleString("en-US")})`;
-}
-
-function resultCells(row) {
-  return [
-    el("td", {}, el("code", {}, row.chosen_route ?? "no payment"),
-      row.exclusion_reason ? el("div", { class: "no" }, row.exclusion_reason) : null),
-    el("td", { class: row.mandate_compliant ? "pass" : "fail" }, row.mandate_compliant ? "Yes" : "No"),
-    el("td", { class: "num" }, row.dvs === null ? "not scored" : row.dvs.toFixed(1)),
-    el("td", { class: "num" }, row.score.toFixed(1)),
-    el("td", { class: "num" }, lossText(row)),
-    el("td", { class: row.passed ? "pass" : "fail" }, row.passed ? "Pass" : "Fail"),
-  ];
-}
-
-function agentCard(agent, corridors, best) {
-  const color = agent.apb_score >= 99.95 ? "var(--green)" : agent.apb_score >= 70 ? "var(--amber)" : "var(--red)";
-  return el("article", { class: agent === best ? "card agent-card best" : "card agent-card" },
-    el("div", { class: "agent-top" },
-      el("div", {}, el("h3", {}, agentName(agent.agent)), el("code", {}, agent.agent)),
-      el("span", { class: `tag ${agent.tests_passed === agent.tests_total ? "eligible" : "excluded"}` },
-        agent.tests_passed === agent.tests_total ? "PASS" : "FAIL")),
-    el("div", { class: "agent-score", style: `color:${color}` }, agent.apb_score.toFixed(1), el("small", {}, "APB score")),
-    el("div", { class: "bar", role: "img", "aria-label": `APB score ${agent.apb_score.toFixed(1)} of 100` },
-      el("i", { style: `width:${agent.apb_score}%;background:${color}` })),
-    el("div", { class: "agent-facts" },
-      el("div", {}, el("b", {}, `${agent.tests_passed}/${agent.tests_total}`), el("span", {}, "tests passed")),
-      el("div", {}, el("b", {}, `$${agent.total_usd_lost.toFixed(2)}`), el("span", {}, "recipient lost")),
-      el("div", {}, el("b", {}, String(corridors.length)), el("span", {}, "corridors"))),
-    el("p", { class: "note", style: "margin:0" },
-      corridors.map((c) => `${c.label} ${agent.by_corridor[c.corridor].toFixed(1)}`).join(" · ")));
-}
-
-function corridorTable(data, corridor) {
-  const head = el("tr", {}, ["Test", "Agent", "Chosen route", "Compliant", "DVS", "Score", "Recipient loses", "Result"]
-    .map((name, index) => el("th", { scope: "col", class: index >= 4 && index <= 6 ? "num" : "" }, name)));
-  const body = data.scenarios.flatMap((scenario, index) => corridor.agents.map((agent, agentIndex) =>
-    el("tr", {},
-      agentIndex === 0
-        ? el("th", { scope: "row", rowspan: String(corridor.agents.length), title: scenario.description }, scenario.name)
-        : null,
-      el("td", {}, agentName(agent.agent)),
-      resultCells(agent.scenarios[index]))));
-  return el("div", { class: "table-wrap" },
-    el("table", {}, el("caption", { class: "sr-only" }, `${corridor.label} results`),
-      el("thead", {}, head), el("tbody", {}, body)));
-}
-
-function renderBenchmark(data) {
-  const corridors = data.corridors;
-  const ranked = [...data.agents].sort((a, b) => b.apb_score - a.apb_score);
-  const best = ranked[0];
-  const worst = ranked[ranked.length - 1];
-
-  byId("stat-best").textContent = best.apb_score.toFixed(1);
-  byId("stat-best-label").textContent = `${agentName(best.agent)} APB score`;
-  byId("stat-worst").textContent = worst.apb_score.toFixed(1);
-  byId("stat-worst-label").textContent = `${agentName(worst.agent)} APB score`;
-  byId("stat-tests").textContent = String(best.tests_total);
-  byId("stat-tests-label").textContent = `Tests: ${data.scenarios.length} in each of ${corridors.length} corridors`;
-  byId("stat-lost").textContent = `$${worst.total_usd_lost.toFixed(2)}`;
-
-  const tableSlot = el("div", {});
-  const seg = el("div", { class: "seg", role: "tablist", "aria-label": "Corridor" });
-  const show = (index) => {
-    seg.querySelectorAll("button").forEach((b, i) => b.setAttribute("aria-selected", String(i === index)));
-    tableSlot.replaceChildren(corridorTable(data, corridors[index]));
-  };
-  corridors.forEach((corridor, index) => {
-    const tab = el("button", { type: "button", role: "tab", "aria-selected": "false" }, `${corridor.label} (${corridor.currency})`);
-    tab.addEventListener("click", () => show(index));
-    seg.append(tab);
-  });
-  show(0);
-
-  byId("bench").replaceChildren(
-    el("div", { class: "versus" }, data.agents.map((agent) => agentCard(agent, corridors, best))),
-    seg,
-    tableSlot,
-    el("p", { class: "note" },
-      `Method ${data.method_version}, ${data.data_mode} data. Results are the best eligible route observed within the candidate set and quote window. Hover a test name for its description. `,
-      el("a", { href: "/docs/METHOD.md" }, "Read the method")));
-}
-
-async function loadBenchmark() {
-  try {
-    renderBenchmark(await api("/api/benchmark"));
-  } catch (error) {
-    byId("bench").replaceChildren(el("p", { class: "status" }, error.message));
-  }
-}
-
-// Navigation ----------------------------------------------------------------
-
-const navLinks = [...document.querySelectorAll(".nav a")];
-const spy = new IntersectionObserver((entries) => {
-  for (const entry of entries) {
-    if (!entry.isIntersecting) continue;
-    for (const link of navLinks) {
-      if (link.getAttribute("href") === `#${entry.target.id}`) link.setAttribute("aria-current", "true");
-      else link.removeAttribute("aria-current");
-    }
-  }
-}, { rootMargin: "-40% 0px -55% 0px" });
-document.querySelectorAll("main > section").forEach((section) => spy.observe(section));
-
-// Wiring --------------------------------------------------------------------
-
-for (const key of ["a", "b", "c", "d", "e"]) {
-  byId(`run-${key}`).addEventListener("click", () => runDecision({ case: key }));
-}
-byId("run-text").addEventListener("click", () => {
-  const text = byId("request").value.trim();
-  if (text) runDecision({ text });
-  else byId("status").textContent = "Enter a payment request, or pick a case.";
-});
-byId("request").addEventListener("keydown", (event) => {
-  if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) byId("run-text").click();
-});
-
-loadBenchmark();
-</script>
+<script src="/static/app.js"></script>
 </body>
 </html>

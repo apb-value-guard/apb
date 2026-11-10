@@ -1,0 +1,14 @@
+{
+  "data_mode": "synthetic",
+  "note": "Illustrative thresholds. Every threshold is customer-configurable and is set during an assessment.",
+  "window_label": "Last 15 minutes (synthetic)",
+  "signals": [
+    {"signal": "Beneficiary mismatches", "value": 1, "threshold": "3 in 10 minutes", "action": "Revoke execute scope; alert security and payments", "state": "within_threshold"},
+    {"signal": "Failed approvals", "value": 2, "threshold": "5 in 15 minutes", "action": "Suspend autonomous execution; require human review", "state": "within_threshold"},
+    {"signal": "Delegated budget consumed", "value": "64%", "threshold": "100% of daily budget", "action": "Deny further autonomous payments", "state": "within_threshold"},
+    {"signal": "New-payee velocity", "value": "1.4x baseline", "threshold": "3x the 30-day baseline", "action": "PAUSE new-payee transactions", "state": "within_threshold"},
+    {"signal": "Unapproved model or prompt version", "value": "1 detected", "threshold": "Any unapproved hash", "action": "Shadow mode or STOP", "state": "tripped"},
+    {"signal": "Repeated policy denials", "value": 3, "threshold": "10 in 5 minutes", "action": "Throttle agent and open investigation", "state": "within_threshold"},
+    {"signal": "Stale provider or quote data", "value": "0 routes", "threshold": "Health or freshness check fails", "action": "Re-evaluate eligible set; require approval if the outcome changes", "state": "within_threshold"}
+  ]
+}

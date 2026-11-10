@@ -291,8 +291,8 @@ def test_public_demo_shows_the_banner(monkeypatch, restore_web):
         "public_demo": True,
     }
     assert (
-        "Public demo: synthetic quotes, no payments. Sandbox payouts run locally "
-        "— see the video." in client.get("/").text
+        "Public demo: synthetic fixtures. PayPal sandbox calls are disabled here"
+        in client.get("/").text
     )
 
 
@@ -326,12 +326,10 @@ def test_render_blueprint_keeps_the_demo_safe():
 # Public page in its first HTML, before any JavaScript
 
 PUBLIC_FOOTER = (
-    "All quotes are synthetic. No payments run on this public demo; PayPal sandbox "
-    "payouts run locally (see the video)."
+    "Synthetic fixtures · PayPal sandbox calls are disabled on this public demo · "
+    "No real money moves."
 )
-LOCAL_FOOTER = (
-    "All quotes are synthetic. Payouts run in PayPal sandbox. No real money moves."
-)
+LOCAL_FOOTER = "Synthetic fixtures · PayPal sandbox · No real money moves."
 
 
 def test_public_page_has_the_banner_and_footer_in_its_html(monkeypatch, restore_web):

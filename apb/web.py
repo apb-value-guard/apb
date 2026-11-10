@@ -20,6 +20,7 @@ from fastapi import Body, FastAPI, HTTPException, Request
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.middleware.trustedhost import TrustedHostMiddleware
@@ -38,6 +39,7 @@ from apb.decide import decide
 from apb.demo import FIXTURE_CURRENCY, fresh_mandate, load_mandate, load_quotes
 from apb.execute import execute
 from apb.explain import with_explanation
+from apb.guard.api import router as guard_router
 from apb.models import DecisionReceipt, PaymentMandate
 from apb.parser import parse_mandate
 
@@ -48,12 +50,10 @@ RECEIVE_CURRENCIES = CURRENCIES
 
 STATIC = Path(__file__).resolve().parent / "static"
 
-LOCAL_FOOTER = (
-    "All quotes are synthetic. Payouts run in PayPal sandbox. No real money moves."
-)
+LOCAL_FOOTER = "Synthetic fixtures · PayPal sandbox · No real money moves."
 PUBLIC_FOOTER = (
-    "All quotes are synthetic. No payments run on this public demo; PayPal sandbox "
-    "payouts run locally (see the video)."
+    "Synthetic fixtures · PayPal sandbox calls are disabled on this public demo · "
+    "No real money moves."
 )
 _BANNER_HIDDEN = 'id="public-banner" role="note" hidden>'
 _BANNER_SHOWN = 'id="public-banner" role="note">'
@@ -66,20 +66,24 @@ def public_demo() -> bool:
 
 
 API_DESCRIPTION = (
-    "Deterministic decision support for an agent about to pay. Send the mandate "
-    "and every quote, and APB says pay, pause or stop, with reason codes and a "
-    "receipt. No AI runs in this path, nothing is stored, and nothing executes. "
+    "APB Guard: the assurance and control layer between AI agents and money. "
+    "`/api/v3` runs synthetic APB World episodes through identity, delegated authority, "
+    "instruction integrity, policy, eligibility and commit-time rechecks, and returns "
+    "PAY, PAUSE, STOP or HANDOFF with a Decision Receipt v3. `/v1` is the v0.1 route-quality "
+    "Check API, kept as the economic-quality stage. No AI runs in either path. "
     f"**{NOTICE}**"
 )
 
 app = FastAPI(
-    title="APB Value Guard, built on PayPal",
+    title="APB Guard | Zero-Trust Controls for Agentic Payments",
     description=API_DESCRIPTION,
-    version="apb-0.1",
+    version="apb-0.3-draft",
     docs_url="/docs",
     redoc_url=None,
     openapi_url="/openapi.json",
 )
+app.include_router(guard_router)
+app.mount("/static", StaticFiles(directory=Path(__file__).resolve().parent / "static"), name="static")
 # A rebinding attack reaches the local server under a foreign Host header. The
 # public demo is reached by its own hostname and can't execute, so it skips this.
 if not public_demo():
@@ -170,6 +174,12 @@ def index() -> HTMLResponse:
     return HTMLResponse(render_page(public_demo()))
 
 
+# Deep links into the one-page app. The script scrolls to the matching section.
+PAGE_ROUTES = ("/decision-lab", "/authority", "/episodes", "/world", "/receipt", "/demo", "/economic-quality")
+for _route in PAGE_ROUTES:
+    app.add_api_route(_route, index, include_in_schema=False, response_class=HTMLResponse)
+
+
 @app.get("/docs/METHOD.md", response_class=PlainTextResponse, include_in_schema=False)
 def method() -> str:
     return METHOD_PATH.read_text("utf-8")
@@ -243,6 +253,7 @@ def run_execute(request: ExecuteRequest) -> dict[str, Any]:
 # Check API ------------------------------------------------------------------
 
 API_PREFIX = "/v1/"
+GUARD_PREFIX = "/api/v3/"
 MAX_BODY_BYTES = 64 * 1024
 RATE_LIMIT = 60
 RATE_WINDOW_SECONDS = 60.0
@@ -280,8 +291,10 @@ def _api_error(status: int, detail: Any) -> JSONResponse:
 
 @app.middleware("http")
 async def guard_the_api(request: Request, call_next: Any) -> Any:
-    if not request.url.path.startswith(API_PREFIX):
-        return await call_next(request)
+    path = request.url.path
+    limited = path.startswith(API_PREFIX) or (path.startswith(GUARD_PREFIX) and request.method == "POST")
+    if not limited:
+        return _secure(request, await call_next(request))
 
     response = None
     if request.method == "POST":
@@ -296,6 +309,29 @@ async def guard_the_api(request: Request, call_next: Any) -> Any:
     if response is None:
         response = await call_next(request)
     response.headers["X-APB-Notice"] = NOTICE
+    return _secure(request, response)
+
+
+# Swagger UI loads its own assets from a CDN, so /docs keeps FastAPI's defaults.
+CSP = (
+    "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: "
+    "https://paymentsbenchmark.com; media-src 'self' https://paymentsbenchmark.com; "
+    "connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; "
+    "form-action 'self'; frame-ancestors 'none'"
+)
+
+
+def _secure(request: Request, response: Any) -> Any:
+    """Security headers on every response."""
+    headers = response.headers
+    headers.setdefault("X-Content-Type-Options", "nosniff")
+    headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()")
+    if not request.url.path.startswith(("/docs", "/openapi.json")):
+        headers.setdefault("Content-Security-Policy", CSP)
+        headers.setdefault("X-Frame-Options", "DENY")
+    if public_demo():
+        headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
     return response
 
 

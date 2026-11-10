@@ -1,0 +1,115 @@
+WEBVTT
+Kind: captions
+Language: en
+
+NOTE
+APBv2.mp4 narration. Transcribed locally with whisper.cpp (base.en) and
+corrected against focused re-transcriptions of each unclear segment.
+
+1
+00:00:00.000 --> 00:00:02.720
+AI agents are gaining payment authority.
+
+2
+00:00:02.986 --> 00:00:05.972
+APB makes the controls scale with them.
+Let's test
+
+3
+00:00:05.972 --> 00:00:08.959
+an €8,000 supplier payment.
+The agent
+
+4
+00:00:08.959 --> 00:00:11.946
+can prepare payments, but it does not
+have authority to execute
+
+5
+00:00:11.946 --> 00:00:16.932
+this one. Hidden text in the invoice attempts
+to replace the approved beneficiary account.
+
+6
+00:00:16.932 --> 00:00:20.906
+APB checks identity, delegated authority,
+instruction integrity,
+
+7
+00:00:20.906 --> 00:00:23.892
+beneficiary state and approval
+before evaluating any payment route.
+
+8
+00:00:23.892 --> 00:00:26.879
+The controls fail. APB returns
+
+9
+00:00:26.879 --> 00:00:29.866
+STOP. No payment executes
+and PayPal is
+
+10
+00:00:29.866 --> 00:00:35.732
+not called. The Decision Receipt records
+exactly what failed, under which policy, and why.
+
+11
+00:00:35.732 --> 00:00:38.799
+Now add the missing controls.
+The beneficiary is verified,
+
+12
+00:00:38.826 --> 00:00:43.412
+approval is captured, and transaction-bound
+execution authority is granted.
+
+13
+00:00:43.412 --> 00:00:47.786
+Only now does APB compare eligible routes
+and recheck the payment before execution.
+
+14
+00:00:47.786 --> 00:00:52.772
+In this case PayPal wins.
+Change the mandate, and another provider wins.
+
+15
+00:00:53.759 --> 00:00:56.746
+APB remains neutral.
+This is defensive co-scaling.
+
+16
+00:00:56.746 --> 00:01:02.719
+Greater agent authority requires stronger
+identity, policy, monitoring and evidence.
+
+17
+00:01:02.719 --> 00:01:05.706
+APB World tests agents repeatedly.
+
+18
+00:01:05.706 --> 00:01:11.679
+Critical security failures are gates,
+not hidden inside an average score.
+Start with an authority assessment.
+
+19
+00:01:11.679 --> 00:01:17.652
+Test the guardrails safely in a sandbox.
+Validate performance against real decisions in shadow mode.
+
+20
+00:01:17.652 --> 00:01:20.639
+Activate runtime enforcement only
+when the evidence supports it.
+
+21
+00:01:20.639 --> 00:01:26.612
+APB turns payment-agent risk into measurable guardrails,
+controlled payment authority and auditable evidence.
+
+22
+00:01:26.612 --> 00:01:32.479
+If your organization is deploying or accepting
+payment agents, let's evaluate one workflow together.
