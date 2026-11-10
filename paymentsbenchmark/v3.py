@@ -330,6 +330,6 @@ def video(summary=False):
         '<track kind="captions" src="{{root}}media/APBv2.en.vtt" srclang="en" label="English">'
         '<a href="{{root}}media/APBv2.web.mp4">Download the product demo (MP4, 7.2 MB)</a></video></div>'
         '<figcaption><span class="chip">1:35</span> Synthetic fixture · PayPal sandbox · No real money moves. '
-        'The video demonstrates control behaviour on fixtures; it does not prove production safety.</figcaption></figure>'
+        'The video demonstrates control behaviour on fixtures; it does not prove production safety. Metric values in the benchmark scene are illustrative.</figcaption></figure>'
     )
     return html
