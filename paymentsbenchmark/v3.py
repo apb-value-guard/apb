@@ -333,3 +333,34 @@ def video(summary=False):
         'The video demonstrates control behaviour on fixtures; it does not prove production safety. Metric values in the benchmark scene are illustrative.</figcaption></figure>'
     )
     return html
+
+
+EXPLAINER_ID = "x4GHZRYi4Ao"
+EXPLAINER_URL = f"https://youtu.be/{EXPLAINER_ID}"
+EXPLAINER_TRANSCRIPT = (
+    "Meet Anna's new assistant: a little AI agent that helps her with her money. One morning, it visits Anna's bank. "
+    "At the front desk, the bank asks a simple question: who do you work for? Anna's a customer, so the agent is "
+    "welcome. But Anna sets the rules. Today, her agent may look at her statements, but it may not move her money. "
+    "So the agent gets a badge, and a guard who walks beside it. Every step is quietly recorded. Looking at "
+    "statements? That's fine. But then the agent heads for the money. The guard steps in. That's not what Anna "
+    "agreed to. Its access is paused, and Anna is told exactly what happened. One day, other banks could be warned "
+    "too, so a rogue agent stopped once is stopped everywhere. And when Anna does approve a payment, the guard "
+    "checks everything once more, and lets it through, with a receipt. APB Guard. The trust layer for the agentic "
+    "financial economy."
+)
+
+
+def explainer():
+    """Click-to-load YouTube (privacy-enhanced). Nothing from YouTube loads until the visitor clicks play."""
+    return (
+        '<p class="lead">How APB Guard keeps AI agents within the limits their owner sets — told as a simple story.</p>'
+        f'<div class="yt" data-yt="{EXPLAINER_ID}">'
+        f'<a class="yt-poster" href="{EXPLAINER_URL}" '
+        'aria-label="Play the video APB in 60 seconds (loads YouTube)">'
+        '<img src="{{root}}media/apb-explainer-poster.jpg" width="1280" height="720" '
+        'alt="An AI agent at a bank front desk, with a guard beside it" loading="lazy" decoding="async">'
+        '<span class="yt-play" aria-hidden="true"></span>'
+        '<span class="yt-note">Plays from YouTube<span class="yt-long"> (privacy-enhanced mode)</span> when you click</span></a></div>'
+        '<p class="note">Illustration. The warning network between banks is a future vision, not a current feature.</p>'
+        f'<details class="transcript"><summary>Transcript</summary><p>{EXPLAINER_TRANSCRIPT}</p></details>'
+    )

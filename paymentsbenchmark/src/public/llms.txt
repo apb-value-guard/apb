@@ -22,6 +22,7 @@ Key facts (APB v3.1 · method apb-0.3-draft · world-0.2.0 · Decision Receipt v
 - [Enterprise](https://paymentsbenchmark.com/enterprise): assessment, sandbox, shadow mode, runtime enforcement
 - [Product demo](https://paymentsbenchmark.com/demo): APBv2 video with captions and scene summary
 - [Interactive demo](https://apb-value-guard.onrender.com/): APB Guard Decision Lab
+- Explainer video (illustration): https://youtu.be/x4GHZRYi4Ao
 
 ## Machine-readable
 

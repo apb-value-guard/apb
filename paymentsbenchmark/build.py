@@ -727,6 +727,7 @@ INCLUDES = {
     "v3:world_version": lambda: v3.VM["world"],
     "v3:method_version": lambda: v3.VM["method"],
     "v3:video": v3.video,
+    "v3:explainer": v3.explainer,
     "demo": lambda: DEMO,
     "contact": lambda: CONTACT,
     "table:by_test": table_by_test,
@@ -1130,6 +1131,7 @@ MEDIA_SOURCES = {  # published name: source
     "apb-demo-poster.jpg": v3.REPO_ROOT / "docs" / "demo" / "apb-demo-poster.jpg",
     "APBv2.en.vtt": v3.REPO_ROOT / "docs" / "demo" / "APBv2.en.vtt",
     "APBv2.web.mp4": ROOT / "media" / "APBv2.web.mp4",
+    "apb-explainer-poster.jpg": SRC / "media" / "apb-explainer-poster.jpg",
 }
 
 

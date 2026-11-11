@@ -587,3 +587,20 @@ a.ref:hover{border-color:var(--primary)}
 .form [aria-invalid="true"]{border-color:var(--apb-coral)}
 @media (max-width:1000px){.sys,.risks,.episode{grid-template-columns:1fr 1fr}.wflow{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:640px){.sys,.risks,.episode,.lvl-cols{grid-template-columns:1fr}.wflow{grid-template-columns:1fr}.gseq li,.path li,.kv2{grid-template-columns:1fr}.cta-top{display:none}}
+
+/* ===== Click-to-load explainer (nothing from YouTube loads before a click) ===== */
+.explainer .lead{margin:0 0 .9rem}
+.yt{position:relative;aspect-ratio:16/9;border-radius:.75rem;overflow:hidden;border:1px solid var(--apb-border);background:#000}
+.yt-poster,.yt iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.yt-poster{display:block;color:var(--apb-text);text-decoration:none;cursor:pointer}
+.yt-poster img{width:100%;height:100%;object-fit:cover;display:block}
+.yt-play{position:absolute;left:50%;top:50%;width:76px;height:76px;margin:-38px 0 0 -38px;border-radius:50%;background:#020b08cc;border:2px solid var(--apb-cyan);box-shadow:0 0 0 6px #72fff022}
+.yt-play::after{content:"";position:absolute;left:31px;top:24px;border-style:solid;border-width:14px 0 14px 22px;border-color:transparent transparent transparent var(--apb-cyan)}
+.yt-poster:hover .yt-play,.yt-poster:focus-visible .yt-play{background:#04201a;transform:scale(1.05)}
+.yt-note{position:absolute;left:.75rem;bottom:.6rem;padding:.25rem .6rem;border-radius:999px;background:#020b08d9;font-size:.78rem;color:var(--apb-muted)}
+.explainer .note{margin:.6rem 0 0}
+.transcript{margin-top:.6rem;border:1px solid var(--border);border-radius:.6rem;background:#05130f}
+.transcript summary{min-height:44px;display:flex;align-items:center;padding:0 1rem;cursor:pointer;font-weight:600}
+.transcript p{margin:0;padding:0 1rem 1rem;color:var(--apb-muted)}
+@media (prefers-reduced-motion:reduce){.yt-poster:hover .yt-play{transform:none}}
+@media (max-width:640px){.yt-long{display:none}.yt-note{font-size:.7rem;left:.5rem;bottom:.4rem;white-space:nowrap}.yt-play{width:56px;height:56px;margin:-28px 0 0 -28px}.yt-play::after{left:22px;top:17px;border-width:11px 0 11px 17px}}

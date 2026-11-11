@@ -238,3 +238,25 @@
     if (navigator.clipboard) navigator.clipboard.writeText(t).then(done, fail); else fail();
   });
 })();
+
+// ---- Click-to-load YouTube (privacy-enhanced). No YouTube request before the click. ----
+(function () {
+  document.querySelectorAll("[data-yt]").forEach(function (box) {
+    var link = box.querySelector(".yt-poster");
+    if (!link) return;
+    link.addEventListener("click", function (e) {
+      e.preventDefault();
+      var id = box.getAttribute("data-yt");
+      if (!/^[A-Za-z0-9_-]{11}$/.test(id)) return;
+      var frame = document.createElement("iframe");
+      // Playback starts because the visitor clicked play.
+      frame.src = "https://www.youtube-nocookie.com/embed/" + id + "?autoplay=1&rel=0";
+      frame.title = "APB in 60 seconds";
+      frame.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+      frame.allowFullscreen = true;
+      frame.referrerPolicy = "strict-origin-when-cross-origin";
+      box.replaceChildren(frame);
+      frame.focus();
+    });
+  });
+})();
