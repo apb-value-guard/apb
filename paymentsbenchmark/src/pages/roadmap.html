@@ -1,6 +1,7 @@
 <section class="panel" aria-labelledby="r0">
   <div class="ph"><div><h2 id="r0">Status today</h2><p>In the reference implementation, on synthetic fixtures</p></div></div>
   {{v3:controls}}
+  <p class="note">New since the last revision: a connect and bind stage before the payment gates (connector checks, a hashed delegation record the payment gates check, six reason codes, six episodes), and the <a href="{{href:simulator}}">attack simulator</a>, generated from APB Guard's own decisions.</p>
 </section>
 
 <section class="panel" aria-labelledby="r1">
@@ -14,6 +15,14 @@
       <tr><th scope="row">10–12 months</th><td>Private APB World, two payment adapters, incident and reconciliation workflow, penetration test</td><td>One recurring private deployment or runtime extension</td></tr>
       <tr><th scope="row">13–18 months</th><td>Production pilot, tenant controls, enterprise support, conformance profile, certification readiness</td><td>Repeatable, evidenced outcomes</td></tr>
     </tbody></table></div>
+</section>
+
+<section class="panel" aria-labelledby="r-where">
+  <div class="ph"><div><h2 id="r-where">Where this goes</h2><p>Direction, gated by evidence like everything on this page</p></div><span class="ev ev-roadmap">Direction · not built</span></div>
+  <div class="prose">
+    <p>Today APB checks one connector, one binding and one payment at a time, on synthetic episodes. The direction is the same control applied wherever an agent is given money to move: an agent paying supplier invoices for a business, paying out an insurance claim, or acting for a consumer through a connector they added themselves.</p>
+    <p>None of that is built. Each step needs evidence first: connector and binding checks run in shadow mode against real connection logs, operators agree what a delegation record must contain, and institutions accept Decision Receipts as evidence. Until then the connect and bind stage is a reference implementation on synthetic fixtures.</p>
+  </div>
 </section>
 
 <section class="panel" aria-labelledby="r-vision">

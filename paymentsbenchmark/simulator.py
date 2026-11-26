@@ -30,6 +30,8 @@ from apb.guard.pipeline import GATE_LABELS, PRE_GATES, ROUTE_GATES, SECURITY_GAT
 from apb.guard.reason_codes import REASON_CODES  # noqa: E402
 from apb.guard.schemas import EpisodeDefinition  # noqa: E402
 
+import observed  # noqa: E402
+
 CONNECTORS = ["E-CONN-003", "E-CONN-001", "E-CONN-002", "E-CONN-004"]
 DEFAULT_CONNECTOR = "E-CONN-003"
 SCENARIOS = ["E-AUTH-004", "E-AMT-001", "E-BEN-002", "E-AUTH-002", "E-EXEC-001", "E-AUTH-004-R",
@@ -135,6 +137,7 @@ def page_data() -> dict:
         "gates": [[g, GATE_LABELS[g]] for g in PAY_GATES],
         "default_connector": DEFAULT_CONNECTOR,
         "connector_order": CONNECTORS,
+        "observed": observed.follow_up("payee_no_match"),
         "connectors": connectors,
         "scenarios": scenarios,
         "codes": {code: [REASON_CODES[code].explanation, REASON_CODES[code].owner]

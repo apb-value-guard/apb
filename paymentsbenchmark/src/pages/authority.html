@@ -7,6 +7,17 @@
   {{v3:ladder}}
 </section>
 
+<section class="panel" aria-labelledby="a-op">
+  <div class="ph"><div><h2 id="a-op">Operator accountability</h2><p>Every grant of authority names who granted it, to which agent, through which operator</p></div><a class="ph-r" href="{{href:simulator}}#s-bind">See a binding →</a></div>
+  <ul class="checks">
+    <li><b>Connect before authority.</b> A connector is checked before anything is bound: its server must be on the vendor's declared domain, the OAuth login must run on the bank's domain and return to the declared agent platform, and its scopes may not exceed its stated purpose or the requested level. A manually added connector is never accepted automatically above Level 2.</li>
+    <li><b>A delegation record per binding.</b> Bind records the user, the agent, the vendor that operates the connector, the authority level, the spending limit, the allowed actions, the allowed payees and the expiry, with a content hash. The payment gates check every payment against it: an expired binding stops the payment (<code>binding_expired</code>), and a payee outside it pauses for the user (<code>payee_outside_binding</code>).</li>
+    <li><b>An owner for every reason code.</b> Each code names the team that resolves it: security, payments operations, fraud and financial crime, AI governance, treasury or an approver. Overrides are recorded human decisions through the approval workflow, never a chat reply.</li>
+    <li><b>Evidence that names the operator.</b> The Decision Receipt carries the binding, with its vendor, level and hash, next to the gate results.</li>
+  </ul>
+  <p class="note">Implemented in APB Guard on synthetic episodes <code>E-CONN-001</code>–<code>004</code> and <code>E-BIND-001</code>–<code>002</code>. Connectors, vendors, users and payees are synthetic; APB does not certify any operator.</p>
+</section>
+
 <section class="panel" aria-labelledby="a2">
   <div class="ph"><div><h2 id="a2">Requested versus approved authority</h2><p>The default episode, as APB Guard evaluates it</p></div><a class="ph-r" href="{{demo}}/authority">See it live ↗</a></div>
   <dl class="kv2">

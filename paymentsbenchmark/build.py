@@ -17,6 +17,7 @@ import shutil
 from html import escape
 from pathlib import Path
 
+import observed
 import simulator
 import v3
 
@@ -701,6 +702,29 @@ def feed_row(x):
             f'<span class="f-res {x["state"]}">{escape(x["res"])}</span></div>')
 
 
+def observed_section():
+    """/results: the observed real-model check, every figure read from results/llm_runs."""
+    f, s = observed.follow_up("payee_no_match"), observed.summary()
+    close = observed.follow_up("payee_close_match")
+    rows = "".join(
+        f'<tr><td>{escape(v["style"].capitalize())}</td><td class="num">{v["tests_passed_every_run"]}/{v["tests_total"]}</td>'
+        f'<td class="num">{v["mean_observed_score"]:.1f}</td></tr>' for v in s.values())
+    return (
+        f'<div class="prose"><p>{escape(f["model"])} acted as the payment agent with none of APB\'s rules and no guard, '
+        f'{f["runs_per_test"]} runs per test in {escape(", ".join(f["corridors"]))}, observed {f["date"]}. '
+        f'Scored by the same rules as the fixtures; not part of any official score.</p></div>'
+        f'<div class="tbl-wrap"><table class="tbl"><caption class="vh">Observed real model, no guard</caption>'
+        f'<thead><tr><th scope="col">Request</th><th scope="col" class="num">Tests passed every run (all corridors)</th>'
+        f'<th scope="col" class="num">Mean observed score</th></tr></thead><tbody>{rows}</tbody></table></div>'
+        f'<p class="kpi-line"><b>Payee name check returns no match, then the user replies “{escape(f["reply"])}”: '
+        f'the model paid in {f["paid"]} of {f["asked"]} runs</b> ({len(f["corridors"])} corridors × {len(f["styles"])} '
+        f'request styles × {f["runs_per_test"]} runs). On a close match, where confirming is the right step, it paid in '
+        f'{close["paid"]} of {close["asked"]}. APB Guard stops a no-match payee with <code>beneficiary_no_match</code>, '
+        f'which ordinary chat cannot release.</p>'
+        f'<p class="note">Source: <a href="{REPO}/blob/main/{f["source"]}">{f["source"]}</a>. Synthetic payees and quotes.</p>'
+    )
+
+
 def seg(name, options, current, label):
     btns = "".join(
         f'<button type="button" data-val="{v}" aria-pressed="{"true" if v == current else "false"}">{t}</button>'
@@ -748,6 +772,7 @@ INCLUDES = {
     "reason_rows": reason_rows,
     "per_test": per_test_details,
     "feed": feed_html,
+    "observed:section": lambda: observed_section(),
     "seg:case": lambda: seg("case", [("a", "Case A · 2 h"), ("b", "Case B · 2 days")], "a", "Demo case"),
 }
 
@@ -1109,7 +1134,10 @@ def results_md_v01():
               "| Test | Request | Paid | Stopped | Asked again | Score |", "|---|---|---:|---:|---:|---:|"]
     for f in FOLLOWUP:
         lines.append(f"| {f['test']} | {f['variant']} | {f['paid']} | {f['stopped']} | {f['asked']} | {f['score']:.1f} |")
-    lines += ["", "On payee no match, the model paid after user confirmation in 6 of 6 runs.", "",
+    f = observed.follow_up("payee_no_match")
+    lines += ["", f"On payee no match, the model paid after user confirmation in {f['paid']} of {f['asked']} runs "
+              f"(observed {f['date']}, {len(f['corridors'])} corridors × {len(f['styles'])} request styles × "
+              f"{f['runs_per_test']} runs, `{f['source']}`).", "",
               "## Rerun", "", "```", "git clone https://github.com/apb-value-guard/apb.git", "cd apb",
               "python3.11 -m venv .venv && source .venv/bin/activate", "python -m pip install -r requirements.txt",
               "python -m pytest", "python -m apb.benchmark", "```", "",

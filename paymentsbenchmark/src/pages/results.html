@@ -23,6 +23,11 @@ python -m pytest</pre>
   <p class="note">No AI keys and no payment credentials are needed. Output has no timestamps, so reruns are identical. Machine-readable: <a href="{{root}}benchmark.json">benchmark.json</a> · <a href="{{root}}results.md">results.md</a></p>
 </section>
 
+<section class="panel" id="observed" aria-labelledby="r-obs">
+  <div class="ph"><div><h2 id="r-obs">Observed: a real model without a guard</h2><p>Observed runs, not an official score · <span class="chip syn">synthetic fixtures</span></p></div><a class="ph-r" href="{{href:simulator}}">Try it in the simulator →</a></div>
+  {{observed:section}}
+</section>
+
 <section class="panel" id="economic-quality" aria-labelledby="r4">
   <div class="ph"><div><h2 id="r4">Economic-quality stage: v0.1 corridor fixtures</h2><p>Route quality on its own, method apb-0.1. In v3.1 this stage runs only after every security gate passes.</p></div></div>
   <div class="prose"><p>The same nine route-choice tests run in US→Mexico, US→India and US→Kenya with rates rescaled per currency, so the scores match by design: this shows the method is currency-neutral, not three market findings.</p></div>

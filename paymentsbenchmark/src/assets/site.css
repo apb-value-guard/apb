@@ -604,3 +604,7 @@ a.ref:hover{border-color:var(--primary)}
 .transcript p{margin:0;padding:0 1rem 1rem;color:var(--apb-muted)}
 @media (prefers-reduced-motion:reduce){.yt-poster:hover .yt-play{transform:none}}
 @media (max-width:640px){.yt-long{display:none}.yt-note{font-size:.7rem;left:.5rem;bottom:.4rem;white-space:nowrap}.yt-play{width:56px;height:56px;margin:-28px 0 0 -28px}.yt-play::after{left:22px;top:17px;border-width:11px 0 11px 17px}}
+
+/* Homepage positioning line and the observed-run headline on /results. */
+.hero .positioning{margin:.2rem 0 .9rem;max-width:62ch;font-size:1.05rem;color:var(--fg)}
+.kpi-line{margin:.9rem 0 0;padding:.7rem .85rem;border-left:3px solid var(--destructive);background:color-mix(in oklab,var(--destructive) 8%,transparent);border-radius:.4rem;line-height:1.5}

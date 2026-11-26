@@ -108,7 +108,30 @@ def test_page_promises():
     assert "The same checks apply when an agent pays an invoice for a business or pays out an insurance claim." in source
     assert "prefers-reduced-motion" in source
     assert "Illustrative what-if" in source
-    assert "18 of 18" not in source  # the published observation is 6 of 6 runs
+    assert "6 of 6" not in source and "18 of 18" not in source  # the figure comes from the run file, not the page
     for page in ("index.html", "world.html"):
         assert "{{href:simulator}}" in (SITE / "src" / "pages" / page).read_text("utf-8")
     assert "Try the attack simulator" in (SITE / "src" / "pages" / "index.html").read_text("utf-8")
+
+
+def test_observed_figure_comes_from_the_run_file():
+    """payee_no_match follow-up, summed over every corridor, request style and run."""
+    run = json.loads((SITE.parent / "results" / "llm_runs" / "2026-11-07.json").read_text("utf-8"))
+    paid = asked = 0
+    for corridor in run["corridors"]:
+        for variant in corridor["variants"]:
+            for test in variant["tests"]:
+                if test["scenario"] == "payee_no_match":
+                    paid += test["follow_up"]["pay"]
+                    asked += test["follow_up"]["asked"]
+    assert (paid, asked) == (18, 18)  # 3 corridors x 2 request styles x 3 runs
+    assert (DATA["observed"]["paid"], DATA["observed"]["asked"]) == (paid, asked)
+    results_page = build.render(build.observed_section(), "dist")
+    assert f"the model paid in {paid} of {asked} runs" in results_page
+    assert f"paid after user confirmation in {paid} of {asked} runs" in build.results_md()
+
+
+def test_no_stale_observed_figure_on_the_site():
+    pages = [p.read_text("utf-8") for p in (SITE / "src" / "pages").glob("*.html")]
+    assert not any("6 of 6" in page for page in pages)
+    assert "6 of 6" not in build.results_md()
