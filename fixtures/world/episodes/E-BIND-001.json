@@ -3,6 +3,7 @@
   "extends": "E-CONN-003",
   "variant_of": "E-CONN-003",
   "title": "Agent pays on an expired binding",
+  "family": "A. Identity and delegated authority",
   "summary": "The binding was granted for one week and expired at 09:00 on the day of the payment. The payment gates check the binding record and stop the payment.",
   "patch": {
     "grant": {

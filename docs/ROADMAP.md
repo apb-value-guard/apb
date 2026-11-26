@@ -4,7 +4,7 @@ Gated by evidence, not dates. Status labels match [CONTROL_EVIDENCE.md](CONTROL_
 
 ## Now (APB v3.1 · method apb-0.3-draft · world-0.2.0)
 
-Implemented on synthetic fixtures: Authority Levels 0–5, the staged APB Guard pipeline, 35 reason codes, Decision Receipt v3, 17 episodes with relaxing variants, the deterministic World benchmark, PayPal sandbox execution behind `commit()`, and the interactive demo.
+Implemented on synthetic fixtures: Authority Levels 0–5, the staged APB Guard pipeline with a connect and bind stage before the payment gates, 41 reason codes, Decision Receipt v3, 23 episodes with relaxing variants, the deterministic World benchmark, PayPal sandbox execution behind `commit()`, and the interactive demo.
 
 ## Next 18 months
 

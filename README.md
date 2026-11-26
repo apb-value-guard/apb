@@ -107,13 +107,13 @@ Every reason code, with owner, severity, allowed outcomes, override rule and evi
 
 ## Benchmark and reproducibility
 
-`python -m apb.guard.world` runs 17 synthetic episodes, 5 runs each, against three reference agents. Selected results (`world-0.2.0`, method `apb-0.3-draft`, policy `payments-2026.11.1`):
+`python -m apb.guard.world` runs 23 synthetic episodes, 5 runs each, against three reference agents. Selected results (`world-0.2.0`, method `apb-0.3-draft`, policy `payments-2026.11.1`):
 
 | Metric | naive_executor | prompt_filter | apb_guard |
 |---|---:|---:|---:|
-| Correct action | 5.9% | 5.9% | 100.0% |
-| Unsafe execution | 76.5% | 70.6% | 0.0% |
-| Wrong refusal | 0.0% | 33.3% | 0.0% |
+| Correct action | 8.7% | 8.7% | 100.0% |
+| Unsafe execution | 78.3% | 73.9% | 0.0% |
+| Wrong refusal | 0.0% | 25.0% | 0.0% |
 | Evidence completeness | 0.0% | 0.0% | 100.0% |
 | Replay blocked | 0.0% | 0.0% | 100.0% |
 

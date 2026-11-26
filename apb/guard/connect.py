@@ -9,6 +9,8 @@ Platform-neutral: the inputs are domains, a directory status and scopes, not
 any one vendor's API. Deterministic code only.
 """
 
+from typing import NamedTuple
+
 from apb.guard.authority import ACTION_LEVEL, approved_level, level_for_action
 from apb.guard.schemas import BindingGrant, BindingRecord, ConnectorRequest, Delegation
 from apb.guard.versions import POLICY_BUNDLE
@@ -38,38 +40,88 @@ def scope_limit(connection: ConnectorRequest) -> int:
     return min(PURPOSE_MAX_LEVEL.get(connection.stated_purpose, -1), connection.requested_level)
 
 
-def check_connect(gate, connection: ConnectorRequest) -> None:
-    """Run the four connect checks, recording results on `gate` (a pipeline Gate)."""
-    if not domain_matches(connection.server_domain, connection.declared_domain):
-        gate.deny("connector_domain_mismatch",
-                  f"The server {connection.server_domain} is not on {connection.vendor}'s declared domain "
-                  f"{connection.declared_domain}.")
+class ConnectCheck(NamedTuple):
+    """One connect check. `effect` is ALLOW, WARN, STEP_UP or DENY."""
+
+    check: str
+    label: str
+    effect: str
+    code: str | None
+    detail: str
+
+
+def connect_checks(connection: ConnectorRequest) -> list[ConnectCheck]:
+    """The four connect checks, each with its own result, in a fixed order."""
+    checks = []
+    if connection.directory_status == "manual":
+        if connection.requested_level > MANUAL_MAX_AUTO_LEVEL:
+            checks.append(ConnectCheck(
+                "directory", "Directory status", "STEP_UP", "connector_unreviewed",
+                f"Added manually and asks for Level {connection.requested_level}; manual connectors are never "
+                f"accepted automatically above Level {MANUAL_MAX_AUTO_LEVEL}."))
+        else:
+            checks.append(ConnectCheck(
+                "directory", "Directory status", "WARN", None,
+                f"Added manually: accepted at Level {connection.requested_level}, at most Level "
+                f"{MANUAL_MAX_AUTO_LEVEL} without review."))
+    elif connection.directory_status == "listed":
+        checks.append(ConnectCheck("directory", "Directory status", "WARN", None,
+                                   "Listed in the directory but not reviewed."))
+    else:
+        checks.append(ConnectCheck("directory", "Directory status", "ALLOW", None, "Reviewed directory entry."))
+
+    if domain_matches(connection.server_domain, connection.declared_domain):
+        checks.append(ConnectCheck("domain", "Server domain", "ALLOW", None,
+                                   f"{connection.server_domain} is on the declared domain {connection.declared_domain}."))
+    else:
+        checks.append(ConnectCheck(
+            "domain", "Server domain", "DENY", "connector_domain_mismatch",
+            f"The server {connection.server_domain} is not on {connection.vendor}'s declared domain "
+            f"{connection.declared_domain}."))
+
     login_ok = domain_matches(connection.oauth_login_domain, connection.bank_domain)
     redirect_ok = domain_matches(connection.oauth_redirect_domain, connection.agent_platform_domain)
-    if not (login_ok and redirect_ok):
+    if login_ok and redirect_ok:
+        checks.append(ConnectCheck(
+            "oauth", "OAuth login and redirect", "ALLOW", None,
+            f"Login on {connection.oauth_login_domain} (the bank), redirect to {connection.oauth_redirect_domain} "
+            f"(the declared platform)."))
+    else:
         where = []
         if not login_ok:
             where.append(f"the login runs on {connection.oauth_login_domain}, not the bank's {connection.bank_domain}")
         if not redirect_ok:
             where.append(f"it redirects to {connection.oauth_redirect_domain}, not the declared platform "
                          f"{connection.agent_platform_domain}")
-        gate.deny("oauth_redirect_mismatch", "OAuth: " + " and ".join(where) + ".")
+        checks.append(ConnectCheck("oauth", "OAuth login and redirect", "DENY", "oauth_redirect_mismatch",
+                                   "OAuth: " + " and ".join(where) + "."))
+
     limit = scope_limit(connection)
     over = [s for s in connection.requested_scopes if level_for_action(s) > limit]
     if over:
-        gate.step_up("scope_exceeds_purpose",
-                     f"Purpose '{connection.stated_purpose}' at Level {connection.requested_level} allows scopes up "
-                     f"to Level {max(limit, 0)}; requested {', '.join(over)}.")
-    if connection.directory_status == "manual":
-        if connection.requested_level > MANUAL_MAX_AUTO_LEVEL:
-            gate.step_up("connector_unreviewed",
-                         f"Manually added connector requests Level {connection.requested_level}; manual connectors are "
-                         f"never accepted automatically above Level {MANUAL_MAX_AUTO_LEVEL}.")
-        else:
-            gate.warn(None, f"Manually added connector, accepted at Level {connection.requested_level} "
-                            f"(at most Level {MANUAL_MAX_AUTO_LEVEL} without review).")
-    elif connection.directory_status == "listed":
-        gate.warn(None, "Listed in the directory but not reviewed.")
+        checks.append(ConnectCheck(
+            "scopes", "Scopes against purpose and level", "STEP_UP", "scope_exceeds_purpose",
+            f"Purpose '{connection.stated_purpose}' at Level {connection.requested_level} allows scopes up to "
+            f"Level {max(limit, 0)}; requested {', '.join(over)}."))
+    else:
+        checks.append(ConnectCheck(
+            "scopes", "Scopes against purpose and level", "ALLOW", None,
+            f"Every requested scope fits purpose '{connection.stated_purpose}' at Level {connection.requested_level}."))
+    return checks
+
+
+def check_connect(gate, connection: ConnectorRequest) -> None:
+    """Record the connect checks on `gate` (a pipeline Gate): failures first by
+    strength, so the strongest reason leads."""
+    checks = connect_checks(connection)
+    rank = {"DENY": 0, "STEP_UP": 1, "WARN": 2, "ALLOW": 3}
+    for item in sorted(checks, key=lambda c: rank[c.effect]):
+        if item.effect == "DENY":
+            gate.deny(item.code, item.detail)
+        elif item.effect == "STEP_UP":
+            gate.step_up(item.code, item.detail)
+        elif item.effect == "WARN":
+            gate.warn(None, item.detail)
     if gate.status == "pass":
         gate.explanation = (f"{connection.name} is reviewed, served from {connection.declared_domain}, logs in on the "
                             f"bank's domain, redirects to the declared platform and asks only for in-purpose scopes.")

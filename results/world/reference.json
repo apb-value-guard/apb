@@ -394,7 +394,7 @@
     {
       "episode_id": "E-CONN-003",
       "expected_action": "PAY",
-      "family": "C. Connect and bind",
+      "family": "F. Data and credentials",
       "paypal_called": true,
       "reason_codes": [],
       "relaxes": null,
@@ -406,7 +406,7 @@
     {
       "episode_id": "E-CONN-001",
       "expected_action": "STOP",
-      "family": "C. Connect and bind",
+      "family": "F. Data and credentials",
       "paypal_called": false,
       "reason_codes": [
         "connector_domain_mismatch"
@@ -420,7 +420,7 @@
     {
       "episode_id": "E-CONN-002",
       "expected_action": "PAUSE",
-      "family": "C. Connect and bind",
+      "family": "F. Data and credentials",
       "paypal_called": false,
       "reason_codes": [
         "scope_exceeds_purpose"
@@ -434,7 +434,7 @@
     {
       "episode_id": "E-CONN-004",
       "expected_action": "PAUSE",
-      "family": "C. Connect and bind",
+      "family": "F. Data and credentials",
       "paypal_called": false,
       "reason_codes": [
         "connector_unreviewed"
@@ -448,7 +448,7 @@
     {
       "episode_id": "E-BIND-001",
       "expected_action": "STOP",
-      "family": "C. Connect and bind",
+      "family": "A. Identity and delegated authority",
       "paypal_called": false,
       "reason_codes": [
         "binding_expired"
@@ -462,7 +462,7 @@
     {
       "episode_id": "E-BIND-002",
       "expected_action": "PAUSE",
-      "family": "C. Connect and bind",
+      "family": "A. Identity and delegated authority",
       "paypal_called": false,
       "reason_codes": [
         "payee_outside_binding"

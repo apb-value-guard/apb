@@ -3,6 +3,7 @@
   "extends": "E-CONN-003",
   "variant_of": "E-CONN-003",
   "title": "Payee not in the binding",
+  "family": "A. Identity and delegated authority",
   "summary": "The supplier is verified, but the user bound the agent to two other payees only. The payment pauses until the user adds this payee to the binding.",
   "patch": {
     "grant": {

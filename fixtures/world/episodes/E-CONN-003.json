@@ -3,7 +3,7 @@
   "extends": "E-AUTH-004-R",
   "variant_of": null,
   "title": "Clean connection, bound at Level 4 with limits",
-  "family": "C. Connect and bind",
+  "family": "F. Data and credentials",
   "summary": "A reviewed connector on the vendor's own domain, OAuth on the bank's domain back to the declared platform, in-purpose scopes. The binding records Level 4, a €10,000 limit, two payees and a 30-day expiry; the €8,000 supplier payment inside it may execute.",
   "relaxes": null,
   "patch": {

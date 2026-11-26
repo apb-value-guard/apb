@@ -6,7 +6,9 @@ Writes two copies of the site:
   preview/  the same pages with relative .html links, for previewing as an artifact
 
 Every word and number is in the HTML at load. JavaScript only adds motion,
-the replay feed, view toggles and copy buttons.
+the replay feed, view toggles and copy buttons. The exception is /simulator,
+which is interactive: it renders from data generated at build time by running
+APB Guard (simulator.py), embedded in the page.
 """
 import json
 import math
@@ -15,6 +17,7 @@ import shutil
 from html import escape
 from pathlib import Path
 
+import simulator
 import v3
 
 ROOT = Path(__file__).resolve().parent
@@ -762,6 +765,11 @@ PAGES = [
          sub=f"{v3.VM['world']} · controlled, adversarial, replayable, versioned, auditable",
          desc="APB World tests payment agents in controlled, versioned environments: adversarial episodes, fixed tools "
               "and policies, hidden facts and deterministic answer keys.", kind="world"),
+    dict(slug="simulator", file="simulator.html", src="simulator.html", nav="world",
+         title="Attack simulator · APB", h1="Attack simulator",
+         sub="Connect, bind, pay · every outcome from APB Guard on synthetic episodes",
+         desc="Connect an agent through a connector, bind its authority, then try to break the payment. Every check, "
+              "delegation record and gate result comes from APB Guard on synthetic APB World episodes.", kind="simulator"),
     dict(slug="authority", file="authority.html", src="authority.html", nav="authority",
          title="Authority Levels 0–5 · defensive co-scaling", h1="Authority model",
          sub="Never grant Level 4 payment authority with Level 1 controls",
@@ -968,6 +976,8 @@ def render(text, mode):
             return href(key[5:], mode)
         if key.startswith("icon:"):
             return icon(key[5:])
+        if key == "sim:data":
+            return simulator.page_json()  # JSON, inserted as-is: never re-templated
         if key in INCLUDES:
             return render(INCLUDES[key](), mode)
         raise KeyError(key)
