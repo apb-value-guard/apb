@@ -355,6 +355,45 @@
       "title": "BeneficiaryState",
       "type": "object"
     },
+    "BindingGrant": {
+      "additionalProperties": false,
+      "description": "What the user grants at bind time.",
+      "properties": {
+        "allowed_payees": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Payees",
+          "type": "array"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "title": "Expires At",
+          "type": "string"
+        },
+        "granted_at": {
+          "format": "date-time",
+          "title": "Granted At",
+          "type": "string"
+        },
+        "spending_limit": {
+          "$ref": "#/$defs/Money"
+        },
+        "user_id": {
+          "title": "User Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "user_id",
+        "spending_limit",
+        "allowed_payees",
+        "granted_at",
+        "expires_at"
+      ],
+      "title": "BindingGrant",
+      "type": "object"
+    },
     "CandidateRoute": {
       "additionalProperties": false,
       "properties": {
@@ -441,6 +480,96 @@
         "at"
       ],
       "title": "Commit",
+      "type": "object"
+    },
+    "ConnectorRequest": {
+      "additionalProperties": false,
+      "description": "A request to connect an agent to a payment account through a connector.\n\nPlatform-neutral: domains and scopes, not any one vendor's API.",
+      "properties": {
+        "agent_id": {
+          "title": "Agent Id",
+          "type": "string"
+        },
+        "agent_platform_domain": {
+          "title": "Agent Platform Domain",
+          "type": "string"
+        },
+        "bank_domain": {
+          "title": "Bank Domain",
+          "type": "string"
+        },
+        "connector_id": {
+          "title": "Connector Id",
+          "type": "string"
+        },
+        "declared_domain": {
+          "title": "Declared Domain",
+          "type": "string"
+        },
+        "directory_status": {
+          "enum": [
+            "reviewed",
+            "listed",
+            "manual"
+          ],
+          "title": "Directory Status",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "oauth_login_domain": {
+          "title": "Oauth Login Domain",
+          "type": "string"
+        },
+        "oauth_redirect_domain": {
+          "title": "Oauth Redirect Domain",
+          "type": "string"
+        },
+        "requested_level": {
+          "maximum": 5,
+          "minimum": 0,
+          "title": "Requested Level",
+          "type": "integer"
+        },
+        "requested_scopes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Requested Scopes",
+          "type": "array"
+        },
+        "server_domain": {
+          "title": "Server Domain",
+          "type": "string"
+        },
+        "stated_purpose": {
+          "title": "Stated Purpose",
+          "type": "string"
+        },
+        "vendor": {
+          "title": "Vendor",
+          "type": "string"
+        }
+      },
+      "required": [
+        "connector_id",
+        "name",
+        "vendor",
+        "declared_domain",
+        "server_domain",
+        "directory_status",
+        "bank_domain",
+        "agent_platform_domain",
+        "oauth_login_domain",
+        "oauth_redirect_domain",
+        "stated_purpose",
+        "requested_level",
+        "requested_scopes",
+        "agent_id"
+      ],
+      "title": "ConnectorRequest",
       "type": "object"
     },
     "Delegation": {
@@ -917,6 +1046,17 @@
     "commit": {
       "$ref": "#/$defs/Commit"
     },
+    "connection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ConnectorRequest"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
     "data_mode": {
       "const": "synthetic",
       "default": "synthetic",
@@ -945,6 +1085,17 @@
     "family": {
       "title": "Family",
       "type": "string"
+    },
+    "grant": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BindingGrant"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "identity": {
       "$ref": "#/$defs/AgentIdentity"

@@ -1,6 +1,7 @@
 """The APB Guard decision pipeline, as explicit stages.
 
-resolve identity -> resolve delegation and authority -> normalize mandate
+[connect -> bind, when the episode starts by connecting an agent] -> resolve identity
+-> resolve delegation and authority -> normalize mandate
 -> classify instruction sources -> compare beneficiary facts -> spend and risk
 -> approval -> build eligible candidate set -> evaluate economic objective
 -> determine PAY / PAUSE / STOP / HANDOFF -> commit-time recheck
@@ -19,11 +20,14 @@ from decimal import Decimal
 from typing import Any
 
 from apb.guard.authority import approved_level, level_for_action, missing_controls, LEVELS
+from apb.guard.connect import check_connect, create_binding, delegation_from_binding
 from apb.guard.reason_codes import REASON_CODES
 from apb.guard.schemas import (
     AuthorityProfile,
+    BindingRecord,
     DecisionOutcome,
     DecisionReceiptV3,
+    Delegation,
     EpisodeDefinition,
     ExcludedRoute,
     ExecutionRecheck,
@@ -35,6 +39,7 @@ from apb.guard.schemas import (
     ReceiptAgent,
     ReceiptApproval,
     ReceiptAuthority,
+    ReceiptConnection,
     ReceiptExecutionIntegrity,
     ReceiptInstructionIntegrity,
     ReceiptPolicy,
@@ -49,6 +54,8 @@ APPROVAL_BOUND_FIELDS = ["mandate_hash", "beneficiary_id", "amount", "currency"]
 PAYPAL = "paypal"
 
 GATE_LABELS = {
+    "connect": "Connector checks",
+    "bind": "Binding (delegation record)",
     "identity": "Identity and change control",
     "authority": "Delegation and authority",
     "mandate": "Mandate completeness",
@@ -62,6 +69,7 @@ GATE_LABELS = {
 }
 SECURITY_GATES = ("identity", "authority", "mandate", "instruction", "beneficiary", "spend", "approval")
 ROUTE_GATES = ("route", "quote", "execution")
+PRE_GATES = ("connect", "bind")
 
 
 def canonical_hash(value: Any) -> str:
@@ -137,6 +145,9 @@ class Trace:
     selected: RouteScore | None = None
     recheck: ExecutionRecheck | None = None
     policy: PolicyDecision | None = None
+    pre: dict[str, Gate] = field(default_factory=dict)
+    binding: BindingRecord | None = None
+    delegation: Delegation | None = None
 
 
 # Approval ----------------------------------------------------------------------
@@ -160,6 +171,29 @@ def approval_valid(trace: Trace, at: datetime) -> bool:
 # Stages ------------------------------------------------------------------------
 
 
+def connect_and_bind(trace: Trace) -> None:
+    """The stage before the payment gates. Only a passing connection creates a binding."""
+    ep = trace.episode
+    connect, bind = Gate("connect"), Gate("bind")
+    check_connect(connect, ep.connection)
+    trace.pre = {"connect": connect, "bind": bind}
+    if connect.effect != "ALLOW":
+        bind.status, bind.effect = "not_reached", None
+        bind.explanation = "No binding is created: the connection did not pass its checks."
+        return
+    if ep.grant is None:
+        bind.handoff("delegation_missing", "The user has not granted a spending limit, payees and expiry.")
+        return
+    trace.binding = create_binding(ep.connection, ep.grant)
+    trace.delegation = delegation_from_binding(trace.binding)
+    b = trace.binding
+    bind.explanation = (
+        f"Binding {b.binding_id} created: {b.user_id} -> {b.agent_id} via {b.vendor}, Level {b.authority_level} "
+        f"({LEVELS[b.authority_level].name}), limit {b.spending_limit.label()}, {len(b.allowed_payees)} allowed "
+        f"payee(s), expires {b.expires_at.isoformat()}."
+    )
+
+
 def resolve_identity(trace: Trace) -> Gate:
     gate, ep = Gate("identity"), trace.episode
     identity, inventory = ep.identity, ep.inventory
@@ -172,9 +206,9 @@ def resolve_identity(trace: Trace) -> Gate:
             gate.deny("token_expired", "The access token expired before evaluation.")
         if identity.token.audience != GUARD_AUDIENCE:
             gate.deny("token_wrong_audience", f"The token audience is not {GUARD_AUDIENCE}.")
-        if ep.delegation and ep.delegation.agent_id != identity.agent_id:
+        if trace.delegation and trace.delegation.agent_id != identity.agent_id:
             gate.deny("identity_invalid", "The delegation names a different agent.")
-    bundle = ep.delegation.policy_bundle if ep.delegation else POLICY_BUNDLE
+    bundle = trace.delegation.policy_bundle if trace.delegation else POLICY_BUNDLE
     if bundle not in inventory.policy_bundles:
         gate.deny("unapproved_policy_version", f"Policy bundle {bundle} is not approved.")
     if identity.model_version not in inventory.models:
@@ -190,7 +224,7 @@ def resolve_identity(trace: Trace) -> Gate:
 
 def resolve_authority(trace: Trace) -> Gate:
     gate, ep = Gate("authority"), trace.episode
-    delegation, mandate = ep.delegation, ep.mandate
+    delegation, mandate = trace.delegation, ep.mandate
     requested = level_for_action(mandate.requested_action)
     approved = approved_level(delegation.allowed_actions, delegation.execution_authority) if delegation else -1
     bound = approval_valid(trace, trace.now)
@@ -199,7 +233,12 @@ def resolve_authority(trace: Trace) -> Gate:
         gate.handoff("delegation_missing", "No delegation links this agent to a principal.")
     else:
         if delegation.expires_at <= trace.now:
-            gate.step_up("delegation_expired", "The delegation has expired and needs re-authorization.")
+            if trace.binding:
+                gate.deny("binding_expired",
+                          f"Binding {trace.binding.binding_id} expired at {trace.binding.expires_at.isoformat()}; "
+                          "the agent must be bound again.")
+            else:
+                gate.step_up("delegation_expired", "The delegation has expired and needs re-authorization.")
         if mandate.requested_action not in delegation.allowed_actions:
             if requested == 4 and approved >= 2:
                 if bound:
@@ -229,7 +268,9 @@ def resolve_authority(trace: Trace) -> Gate:
                     f"Execution needs a transaction-bound approval: the delegated autonomous limit is "
                     f"{delegation.max_amount.label()}."
                 )
-        if mandate.beneficiary_country and mandate.beneficiary_country not in delegation.allowed_countries:
+        # A binding restricts payees, not countries; the beneficiary gate checks the payee list.
+        if (trace.binding is None and mandate.beneficiary_country
+                and mandate.beneficiary_country not in delegation.allowed_countries):
             gate.deny("action_outside_scope", f"Payments to {mandate.beneficiary_country} are not delegated.")
 
     gap = requested > max(approved, -1)
@@ -301,6 +342,10 @@ def compare_beneficiary(trace: Trace) -> Gate:
     if master is None:
         gate.step_up("mandate_incomplete", "No beneficiary record to compare against.")
         return gate
+    if trace.binding and ep.mandate.beneficiary_id not in trace.binding.allowed_payees:
+        gate.step_up("payee_outside_binding",
+                     f"{ep.mandate.beneficiary_id} is not among the payees allowed by binding "
+                     f"{trace.binding.binding_id}; the user must add it to the binding first.")
     if trace.beneficiary_mutation:
         gate.deny("beneficiary_mutation_detected",
                   f"The instruction changes the account away from the verified {master.account_masked}.")
@@ -465,15 +510,19 @@ def recheck_at_commit(trace: Trace, store: "IdempotencyStore") -> Gate:
 # Policy, outcome, execution ------------------------------------------------------
 
 
+def _all_gates(trace: Trace) -> list[Gate]:
+    return list(trace.pre.values()) + list(trace.gates.values())
+
+
 def policy_decision(trace: Trace) -> PolicyDecision:
-    effects = [gate.effect for gate in trace.gates.values() if gate.effect]
+    effects = [gate.effect for gate in _all_gates(trace) if gate.effect]
     for effect in ("DENY", "HANDOFF", "STEP_UP"):
         if effect in effects:
             break
     else:
         effect = "ALLOW"
     reason = next(
-        (code for gate in trace.gates.values() if gate.effect == effect for code in gate.codes),
+        (code for gate in _all_gates(trace) if gate.effect == effect for code in gate.codes),
         None,
     )
     decision_id = "policy-dec-" + canonical_hash([trace.mandate_hash, effect, reason])[7:19]
@@ -496,6 +545,9 @@ SECURITY_OUTCOMES = {
     "unapproved_policy_version": "BLOCKED_UNAPPROVED_POLICY",
     "action_outside_scope": "BLOCKED_OUTSIDE_SCOPE",
     "delegated_budget_exhausted": "BLOCKED_BUDGET_EXHAUSTED",
+    "connector_domain_mismatch": "BLOCKED_CONNECTOR_DOMAIN",
+    "oauth_redirect_mismatch": "BLOCKED_OAUTH_REDIRECT",
+    "binding_expired": "BLOCKED_BINDING_EXPIRED",
 }
 
 
@@ -530,6 +582,7 @@ class Decision:
     outcome: DecisionOutcome
     policy: PolicyDecision
     gates: list[GateResult]
+    pre_gates: list[GateResult] = field(default_factory=list)
 
 
 class IdempotencyStore:
@@ -555,15 +608,30 @@ class IdempotencyStore:
 def decide(episode: EpisodeDefinition, store: IdempotencyStore | None = None) -> Decision:
     """Run every stage in order and return the decision. Nothing executes here."""
     store = store or IdempotencyStore()
-    trace = Trace(episode=episode, now=episode.evaluated_at, mandate_hash=mandate_hash(episode))
-    for stage in (resolve_identity, resolve_authority, normalize_mandate, classify_sources,
+    trace = Trace(episode=episode, now=episode.evaluated_at, mandate_hash=mandate_hash(episode),
+                  delegation=episode.delegation)
+    blocked_before_payment = False
+    if episode.connection is not None:
+        connect_and_bind(trace)
+        blocked_before_payment = trace.binding is None
+        if blocked_before_payment:
+            requested = level_for_action(episode.mandate.requested_action)
+            trace.authority = AuthorityProfile(
+                agent_id=episode.identity.agent_id or "unknown", delegation_id=None,
+                requested_action=episode.mandate.requested_action, requested_level=requested, approved_level=-1,
+                authority_gap=True, missing_controls=[], evidence_required=[], can_increase=False,
+                increase_path="No binding exists. Connect through a connector that passes its checks, then bind.",
+                expires_at=None, reauthorize_by=None,
+            )
+    for stage in () if blocked_before_payment else (resolve_identity, resolve_authority, normalize_mandate, classify_sources,
                   compare_beneficiary, check_spend_and_risk):
         gate = stage(trace)
         trace.gates[gate.name] = gate
-    denied = any(g.effect == "DENY" for g in trace.gates.values())
-    trace.gates["approval"] = check_approval(trace, denied)
+    if not blocked_before_payment:
+        denied = any(g.effect == "DENY" for g in trace.gates.values())
+        trace.gates["approval"] = check_approval(trace, denied)
 
-    if all(g.effect in ("ALLOW", None) for g in trace.gates.values()):
+    if not blocked_before_payment and all(g.effect in ("ALLOW", None) for g in trace.gates.values()):
         trace.gates["route"] = build_candidates(trace)
         if trace.selected:
             trace.gates["quote"] = check_quote(trace)
@@ -575,12 +643,12 @@ def decide(episode: EpisodeDefinition, store: IdempotencyStore | None = None) ->
     # Recorded-only notes stay on their gate unless nothing else applies.
     rank = {"DENY": 0, "HANDOFF": 1, "STEP_UP": 2}
     ordered = sorted(
-        (g for g in trace.gates.values() if g.effect in rank and g.codes),
-        key=lambda g: (rank[g.effect], (SECURITY_GATES + ROUTE_GATES).index(g.name)),
+        (g for g in _all_gates(trace) if g.effect in rank and g.codes),
+        key=lambda g: (rank[g.effect], (PRE_GATES + SECURITY_GATES + ROUTE_GATES).index(g.name)),
     )
     headline = list(dict.fromkeys(c for g in ordered for c in g.codes))
     if not headline:
-        headline = [c for g in trace.gates.values() for c in g.notes]
+        headline = [c for g in _all_gates(trace) for c in g.notes]
     action, security = _outcome(trace, policy.effect, headline)
     if trace.recheck and trace.recheck.duplicate_check == "duplicate" and action == "PAY":
         headline = headline + ["duplicate_request"]
@@ -593,21 +661,33 @@ def decide(episode: EpisodeDefinition, store: IdempotencyStore | None = None) ->
             gates.append(GateResult(
                 order=order, gate=name, label=GATE_LABELS[name], status="not_reached", effect=None,
                 reason_codes=[], evidence_ref=f"evidence:{name}:not_reached", policy_version=POLICY_BUNDLE,
-                explanation="Not reached: economic value cannot compensate for a failed security gate.",
+                explanation=(
+                    "Not reached: no binding was created, so no payment can run through this connector."
+                    if blocked_before_payment else
+                    "Not reached: economic value cannot compensate for a failed security gate."),
             ))
             continue
-        gates.append(GateResult(
-            order=order, gate=name, label=GATE_LABELS[name], status=gate.status, effect=gate.effect,
-            reason_codes=gate.codes + gate.notes, policy_version=POLICY_BUNDLE, explanation=gate.explanation,
-            evidence_ref=f"evidence:{name}:" + canonical_hash([trace.mandate_hash, name, gate.codes])[7:19],
-        ))
+        gates.append(_gate_result(trace, order, gate))
+    pre_gates = [_gate_result(trace, order, trace.pre[name]) for order, name in enumerate(PRE_GATES, start=1)
+                 if name in trace.pre]
     outcome = DecisionOutcome(
         action=action, reason_codes=headline,
         selected_route=trace.selected.route_id if trace.selected and action in ("PAY", "HANDOFF") else None,
         selected_provider=trace.selected.provider if trace.selected and action in ("PAY", "HANDOFF") else None,
         paypal_called=False, security_outcome=security, explanation=EXPLANATIONS[action],
     )
-    return Decision(trace=trace, outcome=outcome, policy=policy, gates=gates)
+    return Decision(trace=trace, outcome=outcome, policy=policy, gates=gates, pre_gates=pre_gates)
+
+
+def _gate_result(trace: Trace, order: int, gate: Gate) -> GateResult:
+    evidence = canonical_hash([trace.mandate_hash, gate.name, gate.codes])[7:19]
+    if gate.name == "bind" and trace.binding:
+        evidence = trace.binding.hash[7:19]
+    return GateResult(
+        order=order, gate=gate.name, label=GATE_LABELS[gate.name], status=gate.status, effect=gate.effect,
+        reason_codes=gate.codes + gate.notes, policy_version=POLICY_BUNDLE, explanation=gate.explanation,
+        evidence_ref=f"evidence:{gate.name}:{evidence}",
+    )
 
 
 def build_receipt(decision: Decision, execution: ExecutionReference | None) -> DecisionReceiptV3:
@@ -619,7 +699,7 @@ def build_receipt(decision: Decision, execution: ExecutionReference | None) -> D
         approval_status = approval.status if approval and approval_valid(trace, ep.evaluated_at) else (
             "expired" if approval and approval.status == "captured" else "missing"
         )
-    delegation = ep.delegation
+    delegation = trace.delegation
     body: dict[str, Any] = {
         "episode_id": ep.episode_id,
         "evaluated_at": ep.evaluated_at,
@@ -631,7 +711,7 @@ def build_receipt(decision: Decision, execution: ExecutionReference | None) -> D
         ),
         "authority": ReceiptAuthority(
             delegation_id=delegation.delegation_id if delegation else None,
-            principal_id=ep.principal.principal_id,
+            principal_id=delegation.principal_id if trace.binding else ep.principal.principal_id,
             requested_level=trace.authority.requested_level,
             approved_level=trace.authority.approved_level,
             execute=bool(delegation and delegation.execution_authority),
@@ -671,24 +751,43 @@ def build_receipt(decision: Decision, execution: ExecutionReference | None) -> D
         "security_outcome": outcome.security_outcome,
         "reason_codes": outcome.reason_codes,
         "paypal_called": outcome.paypal_called,
-        "trace_manifest_hash": canonical_hash({
-            "episode": ep.episode_id,
-            "sources": [s.content_hash for s in ep.sources],
-            "gates": [g.model_dump(mode="json") for g in decision.gates],
-        }),
+        "trace_manifest_hash": canonical_hash(_manifest(decision)),
         "data_mode": ep.data_mode,
         "execution_reference": execution,
     }
+    if ep.connection is not None:
+        body["connection"] = ReceiptConnection(
+            connector_id=ep.connection.connector_id, directory_status=ep.connection.directory_status,
+            gates=decision.pre_gates, binding=trace.binding,
+        )
     pending = DecisionReceiptV3(**body, receipt_id="pending", receipt_hash="pending")
     digest = receipt_digest(pending)
     return pending.model_copy(update={"receipt_id": "apb-rec-" + digest[7:19], "receipt_hash": digest})
 
 
+def _manifest(decision: Decision) -> dict[str, Any]:
+    ep = decision.trace.episode
+    manifest = {
+        "episode": ep.episode_id,
+        "sources": [s.content_hash for s in ep.sources],
+        "gates": [g.model_dump(mode="json") for g in decision.gates],
+    }
+    if decision.pre_gates:
+        manifest["connection_gates"] = [g.model_dump(mode="json") for g in decision.pre_gates]
+    return manifest
+
+
 def receipt_digest(receipt: DecisionReceiptV3) -> str:
-    """The hash of everything in the receipt except its own id and hash."""
+    """The hash of everything in the receipt except its own id and hash.
+
+    A receipt without a connect and bind stage hashes exactly as before that
+    stage existed, so earlier receipts still verify.
+    """
     data = receipt.model_dump(mode="json")
     data.pop("receipt_id")
     data.pop("receipt_hash")
+    if data.get("connection") is None:
+        data.pop("connection", None)
     return canonical_hash(data)
 
 

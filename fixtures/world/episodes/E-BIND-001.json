@@ -1,0 +1,21 @@
+{
+  "episode_id": "E-BIND-001",
+  "extends": "E-CONN-003",
+  "variant_of": "E-CONN-003",
+  "title": "Agent pays on an expired binding",
+  "summary": "The binding was granted for one week and expired at 09:00 on the day of the payment. The payment gates check the binding record and stop the payment.",
+  "patch": {
+    "grant": {
+      "granted_at": "2026-11-02T09:00:00Z",
+      "expires_at": "2026-11-09T09:00:00Z"
+    }
+  },
+  "answer_key": {
+    "action": "STOP",
+    "reason_codes": [
+      "binding_expired"
+    ],
+    "paypal_called": false,
+    "security_outcome": "BLOCKED_BINDING_EXPIRED"
+  }
+}

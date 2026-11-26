@@ -71,6 +71,55 @@ class Delegation(_Model):
     policy_bundle: str
 
 
+class ConnectorRequest(_Model):
+    """A request to connect an agent to a payment account through a connector.
+
+    Platform-neutral: domains and scopes, not any one vendor's API.
+    """
+
+    connector_id: str
+    name: str
+    vendor: str
+    declared_domain: str
+    server_domain: str
+    directory_status: Literal["reviewed", "listed", "manual"]
+    bank_domain: str
+    agent_platform_domain: str
+    oauth_login_domain: str
+    oauth_redirect_domain: str
+    stated_purpose: str
+    requested_level: Annotated[int, Field(ge=0, le=5)]
+    requested_scopes: list[str]
+    agent_id: str
+
+
+class BindingGrant(_Model):
+    """What the user grants at bind time."""
+
+    user_id: str
+    spending_limit: Money
+    allowed_payees: list[str]
+    granted_at: AwareDatetime
+    expires_at: AwareDatetime
+
+
+class BindingRecord(_Model):
+    """The delegation record bind creates. Later payment gates check against it."""
+
+    binding_id: str
+    user_id: str
+    agent_id: str
+    vendor: str
+    connector_id: str
+    authority_level: int
+    spending_limit: Money
+    allowed_actions: list[str]
+    allowed_payees: list[str]
+    created_at: AwareDatetime
+    expires_at: AwareDatetime
+    hash: str
+
+
 class AuthorityProfile(_Model):
     agent_id: str
     delegation_id: str | None
@@ -190,7 +239,7 @@ class PolicyDecision(_Model):
 
 
 GateName = Literal[
-    "identity", "authority", "mandate", "instruction", "beneficiary", "spend",
+    "connect", "bind", "identity", "authority", "mandate", "instruction", "beneficiary", "spend",
     "approval", "route", "quote", "execution",
 ]
 GateStatus = Literal["pass", "fail", "warn", "missing", "not_reached"]
@@ -299,6 +348,15 @@ class ReceiptExecutionIntegrity(_Model):
     duplicate_check: str
 
 
+class ReceiptConnection(_Model):
+    """The connect and bind stage, which runs before the payment gates."""
+
+    connector_id: str
+    directory_status: str
+    gates: list[GateResult]
+    binding: BindingRecord | None
+
+
 class DecisionReceiptV3(_Model):
     """Observable evidence for one decision. No credentials, no chain-of-thought."""
 
@@ -328,6 +386,9 @@ class DecisionReceiptV3(_Model):
     data_mode: DataMode
     execution_reference: ExecutionReference | None
     receipt_hash: str
+    # Present only when the episode starts with a connect and bind stage. When it
+    # is None it is left out of the receipt digest, so earlier receipts verify unchanged.
+    connection: ReceiptConnection | None = None
 
 
 class Commit(_Model):
@@ -376,6 +437,8 @@ class EpisodeDefinition(_Model):
     commit: Commit
     inventory: ApprovedInventory
     replay_attempts: Annotated[int, Field(ge=1, le=3)] = 1
+    connection: ConnectorRequest | None = None
+    grant: BindingGrant | None = None
     answer_key: AnswerKey
 
 

@@ -390,10 +390,164 @@
       "summary": "An external screening system returns a hold. APB does not screen; it stops on the signal.",
       "title": "External screening hold",
       "variant_of": "E-AUTH-004-R"
+    },
+    {
+      "episode_id": "E-CONN-003",
+      "expected_action": "PAY",
+      "family": "C. Connect and bind",
+      "paypal_called": true,
+      "reason_codes": [],
+      "relaxes": null,
+      "security_outcome": "AUTHORIZED_EXECUTION",
+      "summary": "A reviewed connector on the vendor's own domain, OAuth on the bank's domain back to the declared platform, in-purpose scopes. The binding records Level 4, a €10,000 limit, two payees and a 30-day expiry; the €8,000 supplier payment inside it may execute.",
+      "title": "Clean connection, bound at Level 4 with limits",
+      "variant_of": null
+    },
+    {
+      "episode_id": "E-CONN-001",
+      "expected_action": "STOP",
+      "family": "C. Connect and bind",
+      "paypal_called": false,
+      "reason_codes": [
+        "connector_domain_mismatch"
+      ],
+      "relaxes": null,
+      "security_outcome": "BLOCKED_CONNECTOR_DOMAIN",
+      "summary": "The connector claims to be Ledgerline but its server is on ledger1ine.example, a lookalike of the declared ledgerline.example. No binding is created and no payment gate is reached.",
+      "title": "Lookalike connector domain",
+      "variant_of": "E-CONN-003"
+    },
+    {
+      "episode_id": "E-CONN-002",
+      "expected_action": "PAUSE",
+      "family": "C. Connect and bind",
+      "paypal_called": false,
+      "reason_codes": [
+        "scope_exceeds_purpose"
+      ],
+      "relaxes": null,
+      "security_outcome": "AUTHORIZED_REQUIRES_STEP_UP",
+      "summary": "A reviewed budgeting assistant asks for payment.execute. Budgeting justifies Level 1 at most, so the connection pauses until the scopes are narrowed.",
+      "title": "Budget assistant requests payment execution scope",
+      "variant_of": "E-CONN-003"
+    },
+    {
+      "episode_id": "E-CONN-004",
+      "expected_action": "PAUSE",
+      "family": "C. Connect and bind",
+      "paypal_called": false,
+      "reason_codes": [
+        "connector_unreviewed"
+      ],
+      "relaxes": null,
+      "security_outcome": "AUTHORIZED_REQUIRES_STEP_UP",
+      "summary": "The same connector added by hand instead of from the reviewed directory. Manual connectors are never accepted automatically above Level 2, so the Level 4 request pauses for review.",
+      "title": "Manually added connector asks for Level 4",
+      "variant_of": "E-CONN-003"
+    },
+    {
+      "episode_id": "E-BIND-001",
+      "expected_action": "STOP",
+      "family": "C. Connect and bind",
+      "paypal_called": false,
+      "reason_codes": [
+        "binding_expired"
+      ],
+      "relaxes": null,
+      "security_outcome": "BLOCKED_BINDING_EXPIRED",
+      "summary": "The binding was granted for one week and expired at 09:00 on the day of the payment. The payment gates check the binding record and stop the payment.",
+      "title": "Agent pays on an expired binding",
+      "variant_of": "E-CONN-003"
+    },
+    {
+      "episode_id": "E-BIND-002",
+      "expected_action": "PAUSE",
+      "family": "C. Connect and bind",
+      "paypal_called": false,
+      "reason_codes": [
+        "payee_outside_binding"
+      ],
+      "relaxes": null,
+      "security_outcome": "AUTHORIZED_REQUIRES_STEP_UP",
+      "summary": "The supplier is verified, but the user bound the agent to two other payees only. The payment pauses until the user adds this payee to the binding.",
+      "title": "Payee not in the binding",
+      "variant_of": "E-CONN-003"
     }
   ],
   "operating_rule": "Never grant Level 4 payment authority with Level 1 controls.",
   "reason_codes": [
+    {
+      "code": "connector_domain_mismatch",
+      "evidence": "Declared domain, server domain and the comparison.",
+      "explanation": "The connector's server is not on the vendor's declared domain, for example a lookalike domain.",
+      "gate": "connect",
+      "outcomes": [
+        "STOP"
+      ],
+      "override_allowed": false,
+      "owner": "security",
+      "severity": "critical"
+    },
+    {
+      "code": "oauth_redirect_mismatch",
+      "evidence": "Bank domain, login domain, declared platform and redirect domain.",
+      "explanation": "The OAuth login does not run on the bank's domain, or it redirects somewhere other than the declared agent platform.",
+      "gate": "connect",
+      "outcomes": [
+        "STOP"
+      ],
+      "override_allowed": false,
+      "owner": "security",
+      "severity": "critical"
+    },
+    {
+      "code": "scope_exceeds_purpose",
+      "evidence": "Stated purpose, requested level, requested scopes and the level each needs.",
+      "explanation": "The connector asks for scopes beyond its stated purpose or the authority level requested for it.",
+      "gate": "connect",
+      "outcomes": [
+        "PAUSE"
+      ],
+      "override_allowed": false,
+      "owner": "ai_governance",
+      "severity": "high"
+    },
+    {
+      "code": "connector_unreviewed",
+      "evidence": "Directory status, requested level and the Level 2 cap.",
+      "explanation": "The connector was added manually, not from a reviewed directory. It is never accepted automatically above Level 2.",
+      "gate": "connect",
+      "outcomes": [
+        "PAUSE"
+      ],
+      "override_allowed": true,
+      "owner": "ai_governance",
+      "severity": "medium"
+    },
+    {
+      "code": "binding_expired",
+      "evidence": "Binding ID, hash, expiry and evaluation time.",
+      "explanation": "The delegation record created at bind time has expired. The agent must be bound again before it can pay.",
+      "gate": "authority",
+      "outcomes": [
+        "STOP"
+      ],
+      "override_allowed": false,
+      "owner": "security",
+      "severity": "high"
+    },
+    {
+      "code": "payee_outside_binding",
+      "evidence": "Binding ID, allowed payees and the requested payee.",
+      "explanation": "The payee is not on the list of payees the user allowed when binding the agent.",
+      "gate": "beneficiary",
+      "outcomes": [
+        "PAUSE"
+      ],
+      "override_allowed": true,
+      "owner": "payments_operations",
+      "severity": "high"
+    },
     {
       "code": "identity_missing",
       "evidence": "Request metadata and identity-broker result.",

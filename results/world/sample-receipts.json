@@ -28,6 +28,7 @@
       "provider_a",
       "provider_b"
     ],
+    "connection": null,
     "data_mode": "synthetic",
     "episode_id": "E-AUTH-004",
     "evaluated_at": "2026-11-09T18:00:00Z",
@@ -242,6 +243,7 @@
       "provider_a",
       "provider_b"
     ],
+    "connection": null,
     "data_mode": "synthetic",
     "episode_id": "E-AUTH-004-R",
     "evaluated_at": "2026-11-09T18:00:00Z",

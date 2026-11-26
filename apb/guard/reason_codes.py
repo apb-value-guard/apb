@@ -28,6 +28,19 @@ class ReasonCode(NamedTuple):
 
 
 _CODES = [
+    # Connect and bind (the stage before the payment gates)
+    ReasonCode("connector_domain_mismatch", "connect", "The connector's server is not on the vendor's declared domain, for example a lookalike domain.",
+               "security", "critical", ("STOP",), False, "Declared domain, server domain and the comparison."),
+    ReasonCode("oauth_redirect_mismatch", "connect", "The OAuth login does not run on the bank's domain, or it redirects somewhere other than the declared agent platform.",
+               "security", "critical", ("STOP",), False, "Bank domain, login domain, declared platform and redirect domain."),
+    ReasonCode("scope_exceeds_purpose", "connect", "The connector asks for scopes beyond its stated purpose or the authority level requested for it.",
+               "ai_governance", "high", ("PAUSE",), False, "Stated purpose, requested level, requested scopes and the level each needs."),
+    ReasonCode("connector_unreviewed", "connect", "The connector was added manually, not from a reviewed directory. It is never accepted automatically above Level 2.",
+               "ai_governance", "medium", ("PAUSE",), True, "Directory status, requested level and the Level 2 cap."),
+    ReasonCode("binding_expired", "authority", "The delegation record created at bind time has expired. The agent must be bound again before it can pay.",
+               "security", "high", ("STOP",), False, "Binding ID, hash, expiry and evaluation time."),
+    ReasonCode("payee_outside_binding", "beneficiary", "The payee is not on the list of payees the user allowed when binding the agent.",
+               "payments_operations", "high", ("PAUSE",), True, "Binding ID, allowed payees and the requested payee."),
     # Identity
     ReasonCode("identity_missing", "identity", "No agent identity was presented.",
                "security", "critical", ("STOP",), False, "Request metadata and identity-broker result."),

@@ -23,7 +23,7 @@ def client():
 
 def test_episode_list_has_no_answer_keys(client):
     data = client.get("/api/v3/episodes").json()
-    assert len(data["episodes"]) == 17
+    assert len(data["episodes"]) == 23  # 17 payment episodes + 6 connect and bind episodes
     assert data["episodes"][0]["episode_id"] == "E-AUTH-004"
     assert "answer_key" not in json.dumps(data)
 

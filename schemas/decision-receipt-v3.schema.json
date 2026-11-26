@@ -1,5 +1,82 @@
 {
   "$defs": {
+    "BindingRecord": {
+      "additionalProperties": false,
+      "description": "The delegation record bind creates. Later payment gates check against it.",
+      "properties": {
+        "agent_id": {
+          "title": "Agent Id",
+          "type": "string"
+        },
+        "allowed_actions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Actions",
+          "type": "array"
+        },
+        "allowed_payees": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Payees",
+          "type": "array"
+        },
+        "authority_level": {
+          "title": "Authority Level",
+          "type": "integer"
+        },
+        "binding_id": {
+          "title": "Binding Id",
+          "type": "string"
+        },
+        "connector_id": {
+          "title": "Connector Id",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "title": "Expires At",
+          "type": "string"
+        },
+        "hash": {
+          "title": "Hash",
+          "type": "string"
+        },
+        "spending_limit": {
+          "$ref": "#/$defs/Money"
+        },
+        "user_id": {
+          "title": "User Id",
+          "type": "string"
+        },
+        "vendor": {
+          "title": "Vendor",
+          "type": "string"
+        }
+      },
+      "required": [
+        "binding_id",
+        "user_id",
+        "agent_id",
+        "vendor",
+        "connector_id",
+        "authority_level",
+        "spending_limit",
+        "allowed_actions",
+        "allowed_payees",
+        "created_at",
+        "expires_at",
+        "hash"
+      ],
+      "title": "BindingRecord",
+      "type": "object"
+    },
     "ExcludedRoute": {
       "additionalProperties": false,
       "properties": {
@@ -93,6 +170,8 @@
         },
         "gate": {
           "enum": [
+            "connect",
+            "bind",
             "identity",
             "authority",
             "mandate",
@@ -333,6 +412,45 @@
       "title": "ReceiptAuthority",
       "type": "object"
     },
+    "ReceiptConnection": {
+      "additionalProperties": false,
+      "description": "The connect and bind stage, which runs before the payment gates.",
+      "properties": {
+        "binding": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BindingRecord"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "connector_id": {
+          "title": "Connector Id",
+          "type": "string"
+        },
+        "directory_status": {
+          "title": "Directory Status",
+          "type": "string"
+        },
+        "gates": {
+          "items": {
+            "$ref": "#/$defs/GateResult"
+          },
+          "title": "Gates",
+          "type": "array"
+        }
+      },
+      "required": [
+        "connector_id",
+        "directory_status",
+        "gates",
+        "binding"
+      ],
+      "title": "ReceiptConnection",
+      "type": "object"
+    },
     "ReceiptExecutionIntegrity": {
       "additionalProperties": false,
       "properties": {
@@ -488,6 +606,17 @@
       },
       "title": "Candidate Set",
       "type": "array"
+    },
+    "connection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ReceiptConnection"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "data_mode": {
       "enum": [
